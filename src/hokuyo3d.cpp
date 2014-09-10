@@ -30,6 +30,8 @@
 #include <boost/bind.hpp>
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud.h>
+#include <sensor_msgs/MagneticField.h>
+#include <sensor_msgs/Imu.h>
 #include "vssp.hpp"
 
 
@@ -44,7 +46,7 @@ class hokuyo3d_node
 		{
 			if(cloud.points.size() == 0)
 			{
-				cloud.header.frame_id = "hokuyo3d";
+				cloud.header.frame_id = frame_id;
 				cloud.header.stamp = ros::Time::now();
 				// TODO: Use timestamp from sensor
 			}
@@ -60,13 +62,52 @@ class hokuyo3d_node
 			}
 			// Publish frame
 			if(range_header.field != field ||
-				range_header.frame != frame)
+					range_header.frame != frame)
 			{
 				pubPc.publish(cloud);
 				field = range_header.field;
 				frame = range_header.frame;
 				cloud.points.clear();
 				cloud.channels[0].values.clear();
+			}
+		};
+		void cbAux(
+				const vssp::header &header, 
+				const vssp::aux_header &aux_header, 
+				const boost::shared_array<vssp::aux> &auxs)
+		{
+			imu.header.stamp = ros::Time::now();
+			mag.header.stamp = ros::Time::now();
+			if((aux_header.data_bitfield & (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC))
+					== (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC))
+			{
+				imu.header.stamp -= ros::Duration(aux_header.data_ms * aux_header.data_count * 0.001);
+				imu.header.frame_id = frame_id;
+				for(int i = 0; i < aux_header.data_count; i ++)
+				{
+					imu.header.stamp += ros::Duration(aux_header.data_ms * 0.001);
+					imu.orientation_covariance[0] = -1.0;
+					imu.angular_velocity.x = auxs[i].ang_vel.x;
+					imu.angular_velocity.y = auxs[i].ang_vel.y;
+					imu.angular_velocity.z = auxs[i].ang_vel.z;
+					imu.linear_acceleration.x = auxs[i].lin_acc.x;
+					imu.linear_acceleration.y = auxs[i].lin_acc.y;
+					imu.linear_acceleration.z = auxs[i].lin_acc.z;
+				}
+				pubImu.publish(imu);
+			}
+			if((aux_header.data_bitfield & vssp::AX_MASK_MAG) == vssp::AX_MASK_MAG )
+			{
+				mag.header.stamp -= ros::Duration(aux_header.data_ms * aux_header.data_count * 0.001);
+				mag.header.frame_id = frame_id;
+				for(int i = 0; i < aux_header.data_count; i ++)
+				{
+					mag.header.stamp += ros::Duration(aux_header.data_ms * 0.001);
+					mag.magnetic_field.x = auxs[i].mag.x;
+					mag.magnetic_field.y = auxs[i].mag.y;
+					mag.magnetic_field.z = auxs[i].mag.z;
+				}
+				pubMag.publish(mag);
 			}
 		};
 		void cbConnect(bool success)
@@ -77,6 +118,7 @@ class hokuyo3d_node
 				driver.requestHorizontalTable();
 				driver.requestVerticalTable();
 				driver.requestData(true, true);
+				driver.requestAuxData();
 				driver.receivePackets();
 			}
 			else
@@ -90,13 +132,18 @@ class hokuyo3d_node
 			nh.param("interlace", interlace, 4);
 			nh.param("ip", ip, std::string("192.168.0.10"));
 			nh.param("port", port, 10940);
+			nh.param("frame_id", frame_id, std::string("hokuyo3d"));
 			pubPc = nh.advertise<sensor_msgs::PointCloud>("hokuyo_cloud", 5);
+			pubImu = nh.advertise<sensor_msgs::Imu>("imu", 5);
+			pubMag = nh.advertise<sensor_msgs::MagneticField>("mag", 5);
 
 			driver.setTimeout(2.0);
 			driver.connect(ip.c_str(), port, 
 					boost::bind(&hokuyo3d_node::cbConnect, this, _1));
 			driver.registerCallback(
 					boost::bind(&hokuyo3d_node::cbPoint, this, _1, _2, _3, _4));
+			driver.registerAuxCallback(
+					boost::bind(&hokuyo3d_node::cbAux, this, _1, _2, _3));
 			field = 0;
 			frame = 0;
 
@@ -124,8 +171,12 @@ class hokuyo3d_node
 	private:
 		ros::NodeHandle nh;
 		ros::Publisher pubPc;
+		ros::Publisher pubImu;
+		ros::Publisher pubMag;
 		vssp::vsspDriver driver;
 		sensor_msgs::PointCloud cloud;
+		sensor_msgs::Imu imu;
+		sensor_msgs::MagneticField mag;
 
 		int field;
 		int frame;
@@ -133,6 +184,7 @@ class hokuyo3d_node
 		std::string ip;
 		int port;
 		int interlace;
+		std::string frame_id;
 };
 
 

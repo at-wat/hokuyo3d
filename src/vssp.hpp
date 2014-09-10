@@ -40,6 +40,59 @@
 
 namespace vssp
 {
+	static const uint32_t VSSP_MARK
+		= ('V' << 0) | ('S' << 8) | ('S' << 16) | ('P' << 24);
+	static const uint32_t STATUS_OK
+		= ('0' << 0) | ('0' << 8) | ('0' << 16) | (0xA << 24);
+	static const uint32_t STATUS_COMMAND_UNKNOWN
+		= ('1' << 0) | ('0' << 8) | ('1' << 16) | (0xA << 24);
+	static const uint32_t STATUS_COMMAND_INVALID
+		= ('1' << 0) | ('0' << 8) | ('2' << 16) | (0xA << 24);
+	static const uint32_t STATUS_COMMAND_INVALUD_METHOD
+		= ('1' << 0) | ('0' << 8) | ('3' << 16) | (0xA << 24);
+	static const uint32_t STATUS_COMMAND_OUT_OF_RANGE
+		= ('1' << 0) | ('0' << 8) | ('4' << 16) | (0xA << 24);
+	static const uint32_t STATUS_COMMUNICATION_FAILURE
+		= ('2' << 0) | ('0' << 8) | ('1' << 16) | (0xA << 24);
+	static const uint32_t STATUS_UNKNOWN_ERROR
+		= ('3' << 0) | ('0' << 8) | ('1' << 16) | (0xA << 24);
+
+	static const uint32_t TYPE_GET
+		= ('G' << 0) | ('E' << 8) | ('T' << 16) | (':' << 24);
+	static const uint32_t TYPE_SET
+		= ('S' << 0) | ('E' << 8) | ('T' << 16) | (':' << 24);
+	static const uint32_t TYPE_DAT
+		= ('D' << 0) | ('A' << 8) | ('T' << 16) | (':' << 24);
+	static const uint32_t TYPE_VER
+		= ('V' << 0) | ('E' << 8) | ('R' << 16) | (':' << 24);
+	static const uint32_t TYPE_PNG
+		= ('P' << 0) | ('N' << 8) | ('G' << 16) | (':' << 24);
+	static const uint32_t TYPE_RI
+		= ('_' << 0) | ('r' << 8) | ('i' << 16) | (':' << 24);
+	static const uint32_t TYPE_RO
+		= ('_' << 0) | ('r' << 8) | ('o' << 16) | (':' << 24);
+	static const uint32_t TYPE_AX
+		= ('_' << 0) | ('a' << 8) | ('x' << 16) | (':' << 24);
+
+	enum aux_id
+	{
+		AX_MASK_ANGVEL_X = 31,
+		AX_MASK_ANGVEL_Y = 30,
+		AX_MASK_ANGVEL_Z = 29,
+		AX_MASK_LINACC_X = 28,
+		AX_MASK_LINACC_Y = 27,
+		AX_MASK_LINACC_Z = 26,
+		AX_MASK_MAG_X    = 25,
+		AX_MASK_MAG_Y    = 24,
+		AX_MASK_MAG_Z    = 23,
+		AX_MASK_TEMP     = 22,
+		AX_MASK_FIRST    = 22,
+		AX_MASK_LAST     = 31
+	};
+	static const uint32_t AX_MASK_ANGVEL = (1 << AX_MASK_ANGVEL_X) | (1 << AX_MASK_ANGVEL_Y) |(1 << AX_MASK_ANGVEL_Z);
+	static const uint32_t AX_MASK_LINACC = (1 << AX_MASK_LINACC_X) | (1 << AX_MASK_LINACC_Y) |(1 << AX_MASK_LINACC_Z);
+	static const uint32_t AX_MASK_MAG = (1 << AX_MASK_MAG_X) | (1 << AX_MASK_MAG_Y) |(1 << AX_MASK_MAG_Z);
+
 #pragma pack(push, 1)
 	struct header
 	{
@@ -77,14 +130,16 @@ namespace vssp
 	{
 		uint16_t range_mm;
 	};
-	struct ax_header
+	struct aux_header
 	{
 		uint16_t header_length;
-		uint16_t timestamp_ms;
+		uint32_t timestamp_ms;
 		uint32_t data_bitfield;
 		uint8_t data_count;
 		uint8_t data_ms;
 	};
+#pragma pack(pop)
+
 	struct table_sincos
 	{
 		double s;
@@ -129,41 +184,65 @@ namespace vssp
 				return *this;
 			};
 	};
-#pragma pack(pop)
+	class aux
+	{
+		public:
+			struct
+			{
+				double x;
+				double y;
+				double z;
+			} ang_vel;
+			struct
+			{
+				double x;
+				double y;
+				double z;
+			} lin_acc;
+			struct
+			{
+				double x;
+				double y;
+				double z;
+			} mag;
+			double temp;
 
-	static const uint32_t VSSP_MARK
-		= ('V' << 0) | ('S' << 8) | ('S' << 16) | ('P' << 24);
-	static const uint32_t STATUS_OK
-		= ('0' << 0) | ('0' << 8) | ('0' << 16) | (0xA << 24);
-	static const uint32_t STATUS_COMMAND_UNKNOWN
-		= ('1' << 0) | ('0' << 8) | ('1' << 16) | (0xA << 24);
-	static const uint32_t STATUS_COMMAND_INVALID
-		= ('1' << 0) | ('0' << 8) | ('2' << 16) | (0xA << 24);
-	static const uint32_t STATUS_COMMAND_INVALUD_METHOD
-		= ('1' << 0) | ('0' << 8) | ('3' << 16) | (0xA << 24);
-	static const uint32_t STATUS_COMMAND_OUT_OF_RANGE
-		= ('1' << 0) | ('0' << 8) | ('4' << 16) | (0xA << 24);
-	static const uint32_t STATUS_COMMUNICATION_FAILURE
-		= ('2' << 0) | ('0' << 8) | ('1' << 16) | (0xA << 24);
-	static const uint32_t STATUS_UNKNOWN_ERROR
-		= ('3' << 0) | ('0' << 8) | ('1' << 16) | (0xA << 24);
+			aux()
+			{
+				ang_vel.x = ang_vel.y = ang_vel.z = 0.0;
+				lin_acc.x = lin_acc.y = lin_acc.z = 0.0;
+				mag.x = mag.y = mag.z = 0.0;
+				temp = 0.0;
+			};
+			double &operator[](aux_id id)
+			{
+				switch(id)
+				{
+				case vssp::AX_MASK_ANGVEL_X:
+					return ang_vel.x;
+				case vssp::AX_MASK_ANGVEL_Y:
+					return ang_vel.y;
+				case vssp::AX_MASK_ANGVEL_Z:
+					return ang_vel.z;
+				case vssp::AX_MASK_LINACC_X:
+					return lin_acc.x;
+				case vssp::AX_MASK_LINACC_Y:
+					return lin_acc.y;
+				case vssp::AX_MASK_LINACC_Z:
+					return lin_acc.z;
+				case vssp::AX_MASK_MAG_X:
+					return mag.x;
+				case vssp::AX_MASK_MAG_Y:
+					return mag.y;
+				case vssp::AX_MASK_MAG_Z:
+					return mag.z;
+				case vssp::AX_MASK_TEMP:
+					return temp;
+				}
+				throw "Invalid AUX data id";
+			};
+	};
 
-	static const uint32_t TYPE_GET
-		= ('G' << 0) | ('E' << 8) | ('T' << 16) | (':' << 24);
-	static const uint32_t TYPE_SET
-		= ('S' << 0) | ('E' << 8) | ('T' << 16) | (':' << 24);
-	static const uint32_t TYPE_DAT
-		= ('D' << 0) | ('A' << 8) | ('T' << 16) | (':' << 24);
-	static const uint32_t TYPE_VER
-		= ('V' << 0) | ('E' << 8) | ('R' << 16) | (':' << 24);
-	static const uint32_t TYPE_PNG
-		= ('P' << 0) | ('N' << 8) | ('G' << 16) | (':' << 24);
-	static const uint32_t TYPE_RI
-		= ('_' << 0) | ('r' << 8) | ('i' << 16) | (':' << 24);
-	static const uint32_t TYPE_RO
-		= ('_' << 0) | ('r' << 8) | ('o' << 16) | (':' << 24);
-	static const uint32_t TYPE_AX
-		= ('_' << 0) | ('a' << 8) | ('x' << 16) | (':' << 24);
 
 	class vsspDriver;
 };
@@ -204,6 +283,13 @@ class vssp::vsspDriver
 					const boost::shared_array<vssp::xyzi>&)> cb)
 		{
 			cbPoint = cb;
+		};
+		void registerAuxCallback(boost::function<void(
+					const vssp::header&, 
+					const vssp::aux_header&, 
+					const boost::shared_array<vssp::aux>&)> cb)
+		{
+			cbAux = cb;
 		};
 		void setInterlace(int itl)
 		{
@@ -273,6 +359,9 @@ class vssp::vsspDriver
 				const vssp::range_header&, 
 				const vssp::range_index&, 
 				const boost::shared_array<vssp::xyzi>&)> cbPoint;
+		boost::function<void(const vssp::header&,
+				const vssp::aux_header&, 
+				const boost::shared_array<vssp::aux>&)> cbAux;
 		boost::function<void(bool)> cbConnect;
 		boost::shared_array<double> tblH;
 		boost::shared_array<table_sincos> tblV;
@@ -496,6 +585,33 @@ class vssp::vsspDriver
 						break;
 					case TYPE_AX:
 						// Aux data
+						{
+							// Decode range data header
+							const vssp::aux_header aux_header = 
+								*boost::asio::buffer_cast<const vssp::aux_header*>(buf.data());
+							buf.consume(aux_header.header_length);
+							length -= aux_header.header_length;
+
+							// Decode aux data
+							boost::shared_array<vssp::aux> auxs(new vssp::aux[aux_header.data_count]);
+							for(int i = 0; i < aux_header.data_count; i ++)
+							{
+								const int32_t *data =
+									boost::asio::buffer_cast
+									<const int32_t*>(buf.data());
+								int offset = 0;
+								for(aux_id b = vssp::AX_MASK_LAST; 
+										b >= vssp::AX_MASK_FIRST; 
+										b = static_cast<aux_id>(b - 1))
+								{
+									if(aux_header.data_bitfield & (1 << b))
+										auxs[i][b] = 1.0 * data[offset ++];
+								}
+								buf.consume(sizeof(int32_t) * offset);
+								length -= sizeof(int32_t) * offset;
+							}
+							if(!cbAux.empty()) cbAux(header, aux_header, auxs);
+						}
 						break;
 					}
 				}
