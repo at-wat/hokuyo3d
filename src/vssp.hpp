@@ -36,6 +36,7 @@
 #include <boost/shared_array.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
+#include <chrono>
 #include <vector>
 
 namespace vssp
@@ -254,6 +255,9 @@ class vssp::vsspDriver
 			socket(io_service),
 			timer(io_service),
 			closed(false),
+			cbPoint(0),
+			cbAux(0),
+			cbPing(0),
 			tblH_loaded(false),
 			tblV_loaded(false),
 			timeout(1.0)
@@ -275,21 +279,30 @@ class vssp::vsspDriver
 					boost::bind(&vssp::vsspDriver::on_connect, 
 						this, 
 						boost::asio::placeholders::error));
+			timeReadLast = std::chrono::system_clock::now();
 		};
 		void registerCallback(boost::function<void(
 					const vssp::header&, 
 					const vssp::range_header&, 
 					const vssp::range_index&, 
-					const boost::shared_array<vssp::xyzi>&)> cb)
+					const boost::shared_array<vssp::xyzi>&,
+					const std::chrono::microseconds &delayRead)> cb)
 		{
 			cbPoint = cb;
 		};
 		void registerAuxCallback(boost::function<void(
 					const vssp::header&, 
 					const vssp::aux_header&, 
-					const boost::shared_array<vssp::aux>&)> cb)
+					const boost::shared_array<vssp::aux>&,
+					const std::chrono::microseconds &delayRead)> cb)
 		{
 			cbAux = cb;
+		};
+		void registerPingCallback(boost::function<void(
+					const vssp::header&,
+					const std::chrono::microseconds&)> cb)
+		{
+			cbPing = cb;
 		};
 		void setInterlace(int itl)
 		{
@@ -358,10 +371,13 @@ class vssp::vsspDriver
 		boost::function<void(const vssp::header&,
 				const vssp::range_header&, 
 				const vssp::range_index&, 
-				const boost::shared_array<vssp::xyzi>&)> cbPoint;
+				const boost::shared_array<vssp::xyzi>&,
+				const std::chrono::microseconds &delayRead)> cbPoint;
 		boost::function<void(const vssp::header&,
 				const vssp::aux_header&, 
-				const boost::shared_array<vssp::aux>&)> cbAux;
+				const boost::shared_array<vssp::aux>&,
+				const std::chrono::microseconds &delayRead)> cbAux;
+		boost::function<void(const vssp::header&, const std::chrono::microseconds&)> cbPing;
 		boost::function<void(bool)> cbConnect;
 		boost::shared_array<double> tblH;
 		boost::shared_array<table_sincos> tblV;
@@ -369,6 +385,7 @@ class vssp::vsspDriver
 		bool tblV_loaded;
 		double timeout;
 
+		std::chrono::time_point<std::chrono::system_clock> timeReadLast;
 		boost::asio::streambuf buf;
 
 		void send(std::string cmd)
@@ -446,6 +463,10 @@ class vssp::vsspDriver
 		};
 		void on_read(const boost::system::error_code& error)
 		{
+			auto timeRead = std::chrono::system_clock::now();
+			auto time = timeReadLast;
+			auto duration = timeRead - timeReadLast;
+			auto lengthTotal = buf.size();
 			if(error == boost::asio::error::eof)
 			{
 				// Connection closed
@@ -473,6 +494,10 @@ class vssp::vsspDriver
 					break;
 				}
 				if(buf.size() < header.length) break;
+				auto delay = std::chrono::duration_cast
+						<std::chrono::microseconds>
+							(std::chrono::system_clock::now() - time);
+				time += duration * header.length / lengthTotal;
 
 				size_t length = header.length - header.header_length;
 				buf.consume(header.header_length);
@@ -533,6 +558,8 @@ class vssp::vsspDriver
 						break;
 					case TYPE_PNG:
 						// Response to ping command
+						if(!cbPing.empty()) 
+							cbPing(header, delay);
 						break;
 					case TYPE_RI:
 					case TYPE_RO:
@@ -580,7 +607,7 @@ class vssp::vsspDriver
 									(range_header, range_index, index, points);
 								break;
 							}
-							cbPoint(header, range_header, range_index, points);
+							cbPoint(header, range_header, range_index, points, delay);
 						}
 						break;
 					case TYPE_AX:
@@ -610,7 +637,7 @@ class vssp::vsspDriver
 								buf.consume(sizeof(int32_t) * offset);
 								length -= sizeof(int32_t) * offset;
 							}
-							if(!cbAux.empty()) cbAux(header, aux_header, auxs);
+							if(!cbAux.empty()) cbAux(header, aux_header, auxs, delay);
 						}
 						break;
 					}
@@ -619,6 +646,7 @@ class vssp::vsspDriver
 				buf.consume(length);
 			}
 			receivePackets();
+			timeReadLast = timeRead;
 			return;
 		};
 };
