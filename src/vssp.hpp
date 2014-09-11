@@ -139,8 +139,21 @@ namespace vssp
 		uint8_t data_count;
 		uint8_t data_ms;
 	};
+	struct aux_data
+	{
+		int32_t val;
+	};
 #pragma pack(pop)
 
+	class aux_factor_array
+	{
+	public:
+		double operator[](aux_id id)
+		{
+			return k[static_cast<int>(id)];
+		};
+		double k[AX_MASK_LAST + 1];
+	};
 	struct table_sincos
 	{
 		double s;
@@ -244,6 +257,24 @@ namespace vssp
 			};
 	};
 
+	static const double G = 9.807;
+	static const double deg = (M_PI / 180.0);
+
+	// Default value of aux data scaling factor
+	// note: there is no way to get these values in communication
+	//      with prototype edition of the HOKUYO 3D sensor
+	static const aux_factor_array aux_factor_default =
+	{
+		{
+			1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+			1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+			1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 
+			1.0, // Temperature [?]
+			0.6e-6, 0.6e-6, 0.6e-6, // Magnetometer [T]
+			G/8192.0, G/8192.0, G/8192.0, // Accelerometer [m/ss]
+			deg/131.0, deg/131.0, deg/131.0 // Gyrometer [rad/s]
+		}
+	};
 
 	class vsspDriver;
 };
@@ -255,6 +286,7 @@ class vssp::vsspDriver
 			socket(io_service),
 			timer(io_service),
 			closed(false),
+			aux_factor(aux_factor_default),
 			cbPoint(0),
 			cbAux(0),
 			cbPing(0),
@@ -367,6 +399,7 @@ class vssp::vsspDriver
 		boost::asio::ip::tcp::socket socket;
 		boost::asio::deadline_timer timer;
 		bool closed;
+		aux_factor_array aux_factor;
 
 		boost::function<void(const vssp::header&,
 				const vssp::range_header&, 
@@ -623,16 +656,16 @@ class vssp::vsspDriver
 							boost::shared_array<vssp::aux> auxs(new vssp::aux[aux_header.data_count]);
 							for(int i = 0; i < aux_header.data_count; i ++)
 							{
-								const int32_t *data =
+								const vssp::aux_data *data =
 									boost::asio::buffer_cast
-									<const int32_t*>(buf.data());
+									<const vssp::aux_data*>(buf.data());
 								int offset = 0;
 								for(aux_id b = vssp::AX_MASK_LAST; 
 										b >= vssp::AX_MASK_FIRST; 
 										b = static_cast<aux_id>(b - 1))
 								{
-									if(aux_header.data_bitfield & (1 << b))
-										auxs[i][b] = 1.0 * data[offset ++];
+									if(aux_header.data_bitfield & (1 << static_cast<int>(b)))
+										auxs[i][b] = aux_factor[b] * data[offset ++].val;
 								}
 								buf.consume(sizeof(int32_t) * offset);
 								length -= sizeof(int32_t) * offset;
