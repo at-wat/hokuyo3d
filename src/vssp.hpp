@@ -523,7 +523,20 @@ class vssp::vsspDriver
 					*boost::asio::buffer_cast<const vssp::header*>(buf.data());
 				if(header.mark != vssp::VSSP_MARK)
 				{
-					// Exception
+					// Invalid packet
+					// find VSSP mark
+					const uint8_t *data =
+						boost::asio::buffer_cast<const uint8_t*>(buf.data());
+					for(size_t i = 1; i < buf.size() - sizeof(uint32_t); i ++)
+					{
+						const uint32_t *mark = 
+							reinterpret_cast<const uint32_t*>(data + i);
+						if(*mark == vssp::VSSP_MARK)
+						{
+							buf.consume(i);
+							break;
+						}
+					}
 					break;
 				}
 				if(buf.size() < header.length) break;
