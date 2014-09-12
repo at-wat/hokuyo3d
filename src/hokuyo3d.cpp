@@ -135,10 +135,11 @@ class hokuyo3d_node
 				driver.requestData(true, true);
 				driver.requestAuxData();
 				driver.receivePackets();
+				ROS_INFO("Communication started");
 			}
 			else
 			{
-				ROS_ERROR("Connection failure");
+				ROS_ERROR("Connection failed");
 			}
 		};
 		hokuyo3d_node() :
@@ -172,7 +173,11 @@ class hokuyo3d_node
 		};
 		~hokuyo3d_node()
 		{
+			driver.requestAuxData(false);
 			driver.requestData(true, false);
+			driver.requestData(false, false);
+			driver.poll();
+			ROS_INFO("Communication stoped");
 		};
 		bool poll()
 		{
