@@ -64,8 +64,7 @@ public:
 				cloud.channels[0].values.push_back(points[i].i);
 			}
 			// Publish frame
-			if(range_header.field != field ||
-               range_header.frame != frame)
+			if(range_header.frame != frame)
 			{
 				pubPc.publish(cloud);
 				field = range_header.field;
