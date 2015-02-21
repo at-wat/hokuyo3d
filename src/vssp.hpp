@@ -10,8 +10,8 @@
  *     * Redistributions in binary form must reproduce the above copyright
  *       notice, this list of conditions and the following disclaimer in the
  *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the copyright holder nor the names of its 
- *       contributors may be used to endorse or promote products derived from 
+ *     * Neither the name of the copyright holder nor the names of its
+ *       contributors may be used to endorse or promote products derived from
  *       this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
@@ -50,15 +50,16 @@ private:
 	aux_factor_array aux_factor;
 
 	boost::function<void(const vssp::header&,
-			const vssp::range_header&, 
-			const vssp::range_index&, 
+			const vssp::range_header&,
+			const vssp::range_index&,
 			const boost::shared_array<vssp::xyzi>&,
-			const std::chrono::microseconds &delayRead)> cbPoint;
+            const std::chrono::microseconds &delayRead,
+            const vssp::data_range_size&)> cbPoint;
 	boost::function<void(const vssp::header&,
-			const vssp::aux_header&, 
+			const vssp::aux_header&,
 			const boost::shared_array<vssp::aux>&,
 			const std::chrono::microseconds &delayRead)> cbAux;
-	boost::function<void(const vssp::header&, 
+	boost::function<void(const vssp::header&,
 			const std::chrono::microseconds&)> cbPing;
 	boost::function<void(bool)> cbConnect;
 	boost::shared_array<double> tblH;
@@ -71,7 +72,7 @@ private:
 	boost::asio::streambuf buf;
 
 public:
-	vsspDriver() : 
+	vsspDriver() :
 		socket(io_service),
 		timer(io_service),
 		closed(false),
@@ -96,9 +97,9 @@ public:
 		timer.expires_from_now(boost::posix_time::seconds(timeout));
 		timer.async_wait(boost::bind(&vsspDriver::on_timeout_connect, this,
 					boost::asio::placeholders::error));
-		socket.async_connect(endpoint, 
-				boost::bind(&vssp::vsspDriver::on_connect, 
-					this, 
+		socket.async_connect(endpoint,
+				boost::bind(&vssp::vsspDriver::on_connect,
+					this,
 					boost::asio::placeholders::error));
 		timeReadLast = std::chrono::system_clock::now();
 	};
@@ -149,15 +150,15 @@ public:
 	{
 		timer.cancel();
 		timer.expires_from_now(boost::posix_time::seconds(timeout));
-		timer.async_wait(boost::bind(&vsspDriver::on_timeout, this, 
+		timer.async_wait(boost::bind(&vsspDriver::on_timeout, this,
 					boost::asio::placeholders::error));
 		boost::asio::async_read(
 				socket,
 				buf,
 				boost::asio::transfer_at_least(65536),
 				boost::bind(
-					&vsspDriver::on_read, 
-					this, 
+					&vsspDriver::on_read,
+					this,
 					boost::asio::placeholders::error)
 				);
 	};
@@ -178,7 +179,7 @@ private:
 	{
 		boost::shared_ptr<std::string> data(new std::string(cmd));
 		boost::asio::async_write(
-				socket, 
+				socket,
 				boost::asio::buffer(*data),
 				boost::bind(
 					&vsspDriver::on_send,
@@ -214,7 +215,7 @@ private:
 		}
 		cbConnect(true);
 	};
-	void on_send(const boost::system::error_code& error, 
+	void on_send(const boost::system::error_code& error,
 			boost::shared_ptr<std::string> data)
 	{
 		if(error)
@@ -225,7 +226,7 @@ private:
 	};
 	template<class DATA_TYPE>
 		void rangeToXYZ(const vssp::range_header &range_header,
-				const vssp::range_index &range_index, 
+				const vssp::range_index &range_index,
 				boost::shared_array<uint16_t> &index,
 				boost::shared_array<vssp::xyzi> &points)
 		{
@@ -272,7 +273,7 @@ private:
 				break;
 			}
 			// Read packet header
-			const vssp::header header = 
+			const vssp::header header =
 				*boost::asio::buffer_cast<const vssp::header*>(buf.data());
 			if(header.mark != vssp::VSSP_MARK)
 			{
@@ -282,7 +283,7 @@ private:
 					boost::asio::buffer_cast<const uint8_t*>(buf.data());
 				for(size_t i = 1; i < buf.size() - sizeof(uint32_t); i ++)
 				{
-					const uint32_t *mark = 
+					const uint32_t *mark =
 						reinterpret_cast<const uint32_t*>(data + i);
 					if(*mark == vssp::VSSP_MARK)
 					{
@@ -357,7 +358,7 @@ private:
 					break;
 				case TYPE_PNG:
 					// Response to ping command
-					if(!cbPing.empty()) 
+					if(!cbPing.empty())
 						cbPing(header, delay);
 					break;
 				case TYPE_RI:
@@ -370,13 +371,13 @@ private:
 					}
 					{
 						// Decode range data header
-						const vssp::range_header range_header = 
+						const vssp::range_header range_header =
 							*boost::asio::buffer_cast<const vssp::range_header*>(buf.data());
 						buf.consume(range_header.header_length);
 						length -= range_header.header_length;
 
 						// Decode range index header
-						const vssp::range_index range_index = 
+						const vssp::range_index range_index =
 							*boost::asio::buffer_cast<const vssp::range_index*>(buf.data());
 						size_t index_length = range_index.index_length;
 						buf.consume(sizeof(vssp::range_index));
@@ -385,11 +386,14 @@ private:
 
 						// Decode range index
 						boost::shared_array<uint16_t> index(new uint16_t[range_index.nspots+1]);
-						std::memcpy(index.get(), 
+						std::memcpy(index.get(),
 								boost::asio::buffer_cast<const vssp::range_index*>(buf.data()),
 								sizeof(uint16_t) * (range_index.nspots+1));
 						buf.consume(index_length);
 						length -= index_length;
+
+                        // Decode echo size
+                        const vssp::data_range_size data_range_size = {index[range_index.nspots]};
 
 						// Decode range data
 						boost::shared_array<vssp::xyzi> points(new vssp::xyzi[index[range_index.nspots]]);
@@ -406,14 +410,14 @@ private:
 								(range_header, range_index, index, points);
 							break;
 						}
-						cbPoint(header, range_header, range_index, points, delay);
+						cbPoint(header, range_header, range_index, points, delay, data_range_size);
 					}
 					break;
 				case TYPE_AX:
 					// Aux data
 					{
 						// Decode range data header
-						const vssp::aux_header aux_header = 
+						const vssp::aux_header aux_header =
 							*boost::asio::buffer_cast<const vssp::aux_header*>(buf.data());
 						buf.consume(aux_header.header_length);
 						length -= aux_header.header_length;
@@ -426,8 +430,8 @@ private:
 								boost::asio::buffer_cast
 								<const vssp::aux_data*>(buf.data());
 							int offset = 0;
-							for(aux_id b = vssp::AX_MASK_LAST; 
-									b >= vssp::AX_MASK_FIRST; 
+							for(aux_id b = vssp::AX_MASK_LAST;
+									b >= vssp::AX_MASK_FIRST;
 									b = static_cast<aux_id>(b - 1))
 							{
 								if(aux_header.data_bitfield & (1 << static_cast<int>(b)))
@@ -449,4 +453,3 @@ private:
 		return;
 	};
 };
-

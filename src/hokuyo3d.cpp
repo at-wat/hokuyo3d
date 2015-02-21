@@ -10,8 +10,8 @@
  *     * Redistributions in binary form must reproduce the above copyright
  *       notice, this list of conditions and the following disclaimer in the
  *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the copyright holder nor the names of its 
- *       contributors may be used to endorse or promote products derived from 
+ *     * Neither the name of the copyright holder nor the names of its
+ *       contributors may be used to endorse or promote products derived from
  *       this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
@@ -39,11 +39,12 @@ class hokuyo3d_node
 {
 	public:
 		void cbPoint(
-				const vssp::header &header, 
-				const vssp::range_header &range_header, 
+				const vssp::header &header,
+				const vssp::range_header &range_header,
 				const vssp::range_index &range_index,
 				const boost::shared_array<vssp::xyzi> &points,
-				const std::chrono::microseconds &delayRead)
+				const std::chrono::microseconds &delayRead,
+                const vssp::data_range_size &data_range_size)
 		{
 			if(timestampBase == ros::Time(0)) return;
 			if(cloud.points.size() == 0)
@@ -53,7 +54,7 @@ class hokuyo3d_node
 				ping();
 			}
 			// Pack scan data
-			for(int i = 0; i < range_index.nspots; i ++)
+			for(int i = 0; i < data_range_size.necho; i ++)
 			{
 				geometry_msgs::Point32 point;
 				point.x = points[i].x;
@@ -83,14 +84,14 @@ class hokuyo3d_node
 			else timestampBase += (base - timestampBase) * 0.01;
 		}
 		void cbAux(
-				const vssp::header &header, 
-				const vssp::aux_header &aux_header, 
+				const vssp::header &header,
+				const vssp::aux_header &aux_header,
 				const boost::shared_array<vssp::aux> &auxs,
 				const std::chrono::microseconds &delayRead)
 		{
 			if(timestampBase == ros::Time(0)) return;
 			ros::Time stamp = timestampBase + ros::Duration(aux_header.timestamp_ms * 0.001);
-				
+
 			if((aux_header.data_bitfield & (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC))
 					== (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC))
 			{
@@ -156,10 +157,10 @@ class hokuyo3d_node
 
 			driver.setTimeout(2.0);
 			ROS_INFO("Connecting to %s", ip.c_str());
-			driver.connect(ip.c_str(), port, 
+			driver.connect(ip.c_str(), port,
 					boost::bind(&hokuyo3d_node::cbConnect, this, _1));
 			driver.registerCallback(
-					boost::bind(&hokuyo3d_node::cbPoint, this, _1, _2, _3, _4, _5));
+                boost::bind(&hokuyo3d_node::cbPoint, this, _1, _2, _3, _4, _5, _6));
 			driver.registerAuxCallback(
 					boost::bind(&hokuyo3d_node::cbAux, this, _1, _2, _3, _4));
 			driver.registerPingCallback(
@@ -222,7 +223,7 @@ int main(int argc, char **argv)
 	hokuyo3d_node node;
 
 	ros::Rate wait(200);
-	
+
 	while (ros::ok())
 	{
 		if(!node.poll()) break;
@@ -232,4 +233,3 @@ int main(int argc, char **argv)
 
 	return 1;
 }
-
