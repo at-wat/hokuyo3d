@@ -33,38 +33,38 @@
 namespace vssp
 {
 	static const uint32_t VSSP_MARK
-		= ('V' << 0) | ('S' << 8) | ('S' << 16) | ('P' << 24);
+    = ('V' << 0) | ('S' << 8) | ('S' << 16) | ('P' << 24);
 	static const uint32_t STATUS_OK
-		= ('0' << 0) | ('0' << 8) | ('0' << 16) | (0xA << 24);
+    = ('0' << 0) | ('0' << 8) | ('0' << 16) | (0xA << 24);
 	static const uint32_t STATUS_COMMAND_UNKNOWN
-		= ('1' << 0) | ('0' << 8) | ('1' << 16) | (0xA << 24);
+    = ('1' << 0) | ('0' << 8) | ('1' << 16) | (0xA << 24);
 	static const uint32_t STATUS_COMMAND_INVALID
-		= ('1' << 0) | ('0' << 8) | ('2' << 16) | (0xA << 24);
+    = ('1' << 0) | ('0' << 8) | ('2' << 16) | (0xA << 24);
 	static const uint32_t STATUS_COMMAND_INVALUD_METHOD
-		= ('1' << 0) | ('0' << 8) | ('3' << 16) | (0xA << 24);
+    = ('1' << 0) | ('0' << 8) | ('3' << 16) | (0xA << 24);
 	static const uint32_t STATUS_COMMAND_OUT_OF_RANGE
-		= ('1' << 0) | ('0' << 8) | ('4' << 16) | (0xA << 24);
+    = ('1' << 0) | ('0' << 8) | ('4' << 16) | (0xA << 24);
 	static const uint32_t STATUS_COMMUNICATION_FAILURE
-		= ('2' << 0) | ('0' << 8) | ('1' << 16) | (0xA << 24);
+    = ('2' << 0) | ('0' << 8) | ('1' << 16) | (0xA << 24);
 	static const uint32_t STATUS_UNKNOWN_ERROR
-		= ('3' << 0) | ('0' << 8) | ('1' << 16) | (0xA << 24);
+    = ('3' << 0) | ('0' << 8) | ('1' << 16) | (0xA << 24);
 
 	static const uint32_t TYPE_GET
-		= ('G' << 0) | ('E' << 8) | ('T' << 16) | (':' << 24);
+    = ('G' << 0) | ('E' << 8) | ('T' << 16) | (':' << 24);
 	static const uint32_t TYPE_SET
-		= ('S' << 0) | ('E' << 8) | ('T' << 16) | (':' << 24);
+    = ('S' << 0) | ('E' << 8) | ('T' << 16) | (':' << 24);
 	static const uint32_t TYPE_DAT
-		= ('D' << 0) | ('A' << 8) | ('T' << 16) | (':' << 24);
+    = ('D' << 0) | ('A' << 8) | ('T' << 16) | (':' << 24);
 	static const uint32_t TYPE_VER
-		= ('V' << 0) | ('E' << 8) | ('R' << 16) | (':' << 24);
+    = ('V' << 0) | ('E' << 8) | ('R' << 16) | (':' << 24);
 	static const uint32_t TYPE_PNG
-		= ('P' << 0) | ('N' << 8) | ('G' << 16) | (':' << 24);
+    = ('P' << 0) | ('N' << 8) | ('G' << 16) | (':' << 24);
 	static const uint32_t TYPE_RI
-		= ('_' << 0) | ('r' << 8) | ('i' << 16) | (':' << 24);
+    = ('_' << 0) | ('r' << 8) | ('i' << 16) | (':' << 24);
 	static const uint32_t TYPE_RO
-		= ('_' << 0) | ('r' << 8) | ('o' << 16) | (':' << 24);
+    = ('_' << 0) | ('r' << 8) | ('o' << 16) | (':' << 24);
 	static const uint32_t TYPE_AX
-		= ('_' << 0) | ('a' << 8) | ('x' << 16) | (':' << 24);
+    = ('_' << 0) | ('a' << 8) | ('x' << 16) | (':' << 24);
 
 	enum aux_id
 	{
@@ -82,11 +82,11 @@ namespace vssp
 		AX_MASK_LAST     = 31
 	};
 	static const uint32_t AX_MASK_ANGVEL
-	   	= (1 << AX_MASK_ANGVEL_X) | (1 << AX_MASK_ANGVEL_Y) |(1 << AX_MASK_ANGVEL_Z);
+    = (1 << AX_MASK_ANGVEL_X) | (1 << AX_MASK_ANGVEL_Y) |(1 << AX_MASK_ANGVEL_Z);
 	static const uint32_t AX_MASK_LINACC
-	   	= (1 << AX_MASK_LINACC_X) | (1 << AX_MASK_LINACC_Y) |(1 << AX_MASK_LINACC_Z);
+    = (1 << AX_MASK_LINACC_X) | (1 << AX_MASK_LINACC_Y) |(1 << AX_MASK_LINACC_Z);
 	static const uint32_t AX_MASK_MAG
-	   	= (1 << AX_MASK_MAG_X) | (1 << AX_MASK_MAG_Y) |(1 << AX_MASK_MAG_Z);
+    = (1 << AX_MASK_MAG_X) | (1 << AX_MASK_MAG_Y) |(1 << AX_MASK_MAG_Z);
 
 #pragma pack(push, 1)
 	struct header
@@ -147,9 +147,9 @@ namespace vssp
 	{
 	public:
 		double operator[](aux_id id)
-		{
-			return k[static_cast<int>(id)];
-		};
+            {
+                return k[static_cast<int>(id)];
+            };
 		double k[AX_MASK_LAST + 1];
 	};
 	struct table_sincos
@@ -166,35 +166,35 @@ namespace vssp
 		double i;
 
 		xyzi()
-		{
-		};
+            {
+            };
 		xyzi(double &v_sin, double &v_cos, double &h_sin, double &h_cos)
-		{
-			i = 0;
-			x = v_cos * h_cos;
-			y = v_cos * h_sin;
-			z = v_sin;
-		};
+            {
+                i = 0;
+                x = v_cos * h_cos;
+                y = v_cos * h_sin;
+                z = v_sin;
+            };
 		xyzi operator *(const data_range_intensity &data)
-		{
-			xyzi ret = *this;
-			double r = data.range_mm * 0.001;
-			ret.i = data.intensity;
-			ret.x *= r;
-			ret.y *= r;
-			ret.z *= r;
-			return ret;
-		};
+            {
+                xyzi ret = *this;
+                double r = data.range_mm * 0.001;
+                ret.i = data.intensity;
+                ret.x *= r;
+                ret.y *= r;
+                ret.z *= r;
+                return ret;
+            };
 		xyzi operator *(const data_range_only &data)
-		{
-			xyzi ret = *this;
-			double r = data.range_mm * 0.001;
-			ret.i = 0;
-			ret.x *= r;
-			ret.y *= r;
-			ret.z *= r;
-			return *this;
-		};
+            {
+                xyzi ret = *this;
+                double r = data.range_mm * 0.001;
+                ret.i = 0;
+                ret.x *= r;
+                ret.y *= r;
+                ret.z *= r;
+                return *this;
+            };
 	};
 	class aux
 	{
@@ -220,39 +220,39 @@ namespace vssp
 		double temp;
 
 		aux()
-		{
-			ang_vel.x = ang_vel.y = ang_vel.z = 0.0;
-			lin_acc.x = lin_acc.y = lin_acc.z = 0.0;
-			mag.x = mag.y = mag.z = 0.0;
-			temp = 0.0;
-		};
+            {
+                ang_vel.x = ang_vel.y = ang_vel.z = 0.0;
+                lin_acc.x = lin_acc.y = lin_acc.z = 0.0;
+                mag.x = mag.y = mag.z = 0.0;
+                temp = 0.0;
+            };
 		double &operator[](aux_id id)
-		{
-			switch(id)
-			{
-			case vssp::AX_MASK_ANGVEL_X:
-				return ang_vel.x;
-			case vssp::AX_MASK_ANGVEL_Y:
-				return ang_vel.y;
-			case vssp::AX_MASK_ANGVEL_Z:
-				return ang_vel.z;
-			case vssp::AX_MASK_LINACC_X:
-				return lin_acc.x;
-			case vssp::AX_MASK_LINACC_Y:
-				return lin_acc.y;
-			case vssp::AX_MASK_LINACC_Z:
-				return lin_acc.z;
-			case vssp::AX_MASK_MAG_X:
-				return mag.x;
-			case vssp::AX_MASK_MAG_Y:
-				return mag.y;
-			case vssp::AX_MASK_MAG_Z:
-				return mag.z;
-			case vssp::AX_MASK_TEMP:
-				return temp;
-			}
-			throw "Invalid AUX data id";
-		};
+            {
+                switch(id)
+                {
+                case vssp::AX_MASK_ANGVEL_X:
+                    return ang_vel.x;
+                case vssp::AX_MASK_ANGVEL_Y:
+                    return ang_vel.y;
+                case vssp::AX_MASK_ANGVEL_Z:
+                    return ang_vel.z;
+                case vssp::AX_MASK_LINACC_X:
+                    return lin_acc.x;
+                case vssp::AX_MASK_LINACC_Y:
+                    return lin_acc.y;
+                case vssp::AX_MASK_LINACC_Z:
+                    return lin_acc.z;
+                case vssp::AX_MASK_MAG_X:
+                    return mag.x;
+                case vssp::AX_MASK_MAG_Y:
+                    return mag.y;
+                case vssp::AX_MASK_MAG_Z:
+                    return mag.z;
+                case vssp::AX_MASK_TEMP:
+                    return temp;
+                }
+                throw "Invalid AUX data id";
+            };
 	};
 
 	static const double G = 9.807;

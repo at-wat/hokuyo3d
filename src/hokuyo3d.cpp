@@ -37,14 +37,14 @@
 
 class hokuyo3d_node
 {
-	public:
-		void cbPoint(
-				const vssp::header &header,
-				const vssp::range_header &range_header,
-				const vssp::range_index &range_index,
-				const boost::shared_array<vssp::xyzi> &points,
-				const std::chrono::microseconds &delayRead,
-                const vssp::data_range_size &data_range_size)
+public:
+    void cbPoint(
+        const vssp::header &header,
+        const vssp::range_header &range_header,
+        const vssp::range_index &range_index,
+        const boost::shared_array<vssp::xyzi> &points,
+        const std::chrono::microseconds &delayRead,
+        const vssp::data_range_size &data_range_size)
 		{
 			if(timestampBase == ros::Time(0)) return;
 			if(cloud.points.size() == 0)
@@ -65,7 +65,7 @@ class hokuyo3d_node
 			}
 			// Publish frame
 			if(range_header.field != field ||
-					range_header.frame != frame)
+               range_header.frame != frame)
 			{
 				pubPc.publish(cloud);
 				field = range_header.field;
@@ -74,26 +74,26 @@ class hokuyo3d_node
 				cloud.channels[0].values.clear();
 			}
 		};
-		void cbPing(const vssp::header &header, const std::chrono::microseconds &delayRead)
+    void cbPing(const vssp::header &header, const std::chrono::microseconds &delayRead)
 		{
 			ros::Time now = ros::Time::now() - ros::Duration(delayRead.count() * 0.001 * 0.001);
 			ros::Duration delay = ((now - timePing)
-					- ros::Duration(header.send_time_ms * 0.001 - header.received_time_ms * 0.001)) * 0.5;
+                                   - ros::Duration(header.send_time_ms * 0.001 - header.received_time_ms * 0.001)) * 0.5;
 			ros::Time base = timePing + delay - ros::Duration(header.received_time_ms * 0.001);
 			if(timestampBase == ros::Time(0)) timestampBase = base;
 			else timestampBase += (base - timestampBase) * 0.01;
 		}
-		void cbAux(
-				const vssp::header &header,
-				const vssp::aux_header &aux_header,
-				const boost::shared_array<vssp::aux> &auxs,
-				const std::chrono::microseconds &delayRead)
+    void cbAux(
+        const vssp::header &header,
+        const vssp::aux_header &aux_header,
+        const boost::shared_array<vssp::aux> &auxs,
+        const std::chrono::microseconds &delayRead)
 		{
 			if(timestampBase == ros::Time(0)) return;
 			ros::Time stamp = timestampBase + ros::Duration(aux_header.timestamp_ms * 0.001);
 
 			if((aux_header.data_bitfield & (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC))
-					== (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC))
+               == (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC))
 			{
 				imu.header.frame_id = frame_id;
 				imu.header.stamp = stamp;
@@ -124,7 +124,7 @@ class hokuyo3d_node
 				}
 			}
 		};
-		void cbConnect(bool success)
+    void cbConnect(bool success)
 		{
 			if(success)
 			{
@@ -143,9 +143,9 @@ class hokuyo3d_node
 				ROS_ERROR("Connection failed");
 			}
 		};
-		hokuyo3d_node() :
-			nh("~"),
-			timestampBase(0)
+    hokuyo3d_node() :
+        nh("~"),
+        timestampBase(0)
 		{
 			nh.param("interlace", interlace, 4);
 			nh.param("ip", ip, std::string("192.168.0.10"));
@@ -158,13 +158,13 @@ class hokuyo3d_node
 			driver.setTimeout(2.0);
 			ROS_INFO("Connecting to %s", ip.c_str());
 			driver.connect(ip.c_str(), port,
-					boost::bind(&hokuyo3d_node::cbConnect, this, _1));
+                           boost::bind(&hokuyo3d_node::cbConnect, this, _1));
 			driver.registerCallback(
                 boost::bind(&hokuyo3d_node::cbPoint, this, _1, _2, _3, _4, _5, _6));
 			driver.registerAuxCallback(
-					boost::bind(&hokuyo3d_node::cbAux, this, _1, _2, _3, _4));
+                boost::bind(&hokuyo3d_node::cbAux, this, _1, _2, _3, _4));
 			driver.registerPingCallback(
-					boost::bind(&hokuyo3d_node::cbPing, this, _1, _2));
+                boost::bind(&hokuyo3d_node::cbPing, this, _1, _2));
 			field = 0;
 			frame = 0;
 
@@ -172,7 +172,7 @@ class hokuyo3d_node
 			channel.name = std::string("intensity");
 			cloud.channels.push_back(channel);
 		};
-		~hokuyo3d_node()
+    ~hokuyo3d_node()
 		{
 			driver.requestAuxData(false);
 			driver.requestData(true, false);
@@ -180,7 +180,7 @@ class hokuyo3d_node
 			driver.poll();
 			ROS_INFO("Communication stoped");
 		};
-		bool poll()
+    bool poll()
 		{
 			if(driver.poll())
 			{
@@ -189,31 +189,31 @@ class hokuyo3d_node
 			ROS_ERROR("Connection closed");
 			return false;
 		};
-		void ping()
+    void ping()
 		{
 			driver.requestPing();
 			timePing = ros::Time::now();
 		};
-	private:
-		ros::NodeHandle nh;
-		ros::Publisher pubPc;
-		ros::Publisher pubImu;
-		ros::Publisher pubMag;
-		vssp::vsspDriver driver;
-		sensor_msgs::PointCloud cloud;
-		sensor_msgs::Imu imu;
-		sensor_msgs::MagneticField mag;
+private:
+    ros::NodeHandle nh;
+    ros::Publisher pubPc;
+    ros::Publisher pubImu;
+    ros::Publisher pubMag;
+    vssp::vsspDriver driver;
+    sensor_msgs::PointCloud cloud;
+    sensor_msgs::Imu imu;
+    sensor_msgs::MagneticField mag;
 
-		ros::Time timePing;
-		ros::Time timestampBase;
+    ros::Time timePing;
+    ros::Time timestampBase;
 
-		int field;
-		int frame;
+    int field;
+    int frame;
 
-		std::string ip;
-		int port;
-		int interlace;
-		std::string frame_id;
+    std::string ip;
+    int port;
+    int interlace;
+    std::string frame_id;
 };
 
 
