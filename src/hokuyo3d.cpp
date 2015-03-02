@@ -56,6 +56,10 @@ class hokuyo3d_node
 			// Pack scan data
 			for(int i = 0; i < index[range_index.nspots]; i ++)
 			{
+				if(points[i].r < range_min)
+				{
+					continue;
+				}
 				geometry_msgs::Point32 point;
 				point.x = points[i].x;
 				point.y = points[i].y;
@@ -91,7 +95,7 @@ class hokuyo3d_node
 		{
 			if(timestampBase == ros::Time(0)) return;
 			ros::Time stamp = timestampBase + ros::Duration(aux_header.timestamp_ms * 0.001);
-				
+
 			if((aux_header.data_bitfield & (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC))
 					== (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC))
 			{
@@ -151,6 +155,7 @@ class hokuyo3d_node
 			nh.param("ip", ip, std::string("192.168.0.10"));
 			nh.param("port", port, 10940);
 			nh.param("frame_id", frame_id, std::string("hokuyo3d"));
+			nh.param("range_min", range_min, 0.0);
 			pubPc = nh.advertise<sensor_msgs::PointCloud>("hokuyo_cloud", 5);
 			pubImu = nh.advertise<sensor_msgs::Imu>("imu", 5);
 			pubMag = nh.advertise<sensor_msgs::MagneticField>("mag", 5);
@@ -213,6 +218,7 @@ class hokuyo3d_node
 		std::string ip;
 		int port;
 		int interlace;
+		double range_min;
 		std::string frame_id;
 };
 
