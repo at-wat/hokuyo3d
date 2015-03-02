@@ -56,6 +56,10 @@ public:
 			// Pack scan data
 			for(int i = 0; i < data_range_size.necho; i ++)
 			{
+                double distance= sqrt(points[i].x * points[i].x + points[i].y * points[i].y);
+                if (distance < invalid_range){
+                    continue;
+                }
 				geometry_msgs::Point32 point;
 				point.x = points[i].x;
 				point.y = points[i].y;
@@ -150,7 +154,8 @@ public:
 			nh.param("ip", ip, std::string("192.168.0.10"));
 			nh.param("port", port, 10940);
 			nh.param("frame_id", frame_id, std::string("hokuyo3d"));
-			pubPc = nh.advertise<sensor_msgs::PointCloud>("hokuyo_cloud", 5);
+            nh.param("invalid_range", invalid_range, 0.30);
+            pubPc = nh.advertise<sensor_msgs::PointCloud>("hokuyo_cloud", 5);
 			pubImu = nh.advertise<sensor_msgs::Imu>("imu", 5);
 			pubMag = nh.advertise<sensor_msgs::MagneticField>("mag", 5);
 
@@ -208,6 +213,7 @@ private:
 
     int field;
     int frame;
+    double invalid_range;
 
     std::string ip;
     int port;
