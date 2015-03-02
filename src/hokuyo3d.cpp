@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, ATR, Atsushi Watanabe
+ * Copyright (c) 2014-2015, <ATR> Atsushi Watanabe, <Ritsumeikan University> Yukihiro Saito
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
