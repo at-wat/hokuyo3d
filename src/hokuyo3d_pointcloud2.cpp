@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, <ATR> Atsushi Watanabe, <Ritsumeikan University> Yukihiro Saito
+ * Copyright (c) 2015, <ATR> Atsushi Watanabe,  <Ritsumeikan University> Yukihiro Saito
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,11 +29,14 @@
 
 #include <boost/bind.hpp>
 #include <ros/ros.h>
-#include <sensor_msgs/PointCloud.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/MagneticField.h>
 #include <sensor_msgs/Imu.h>
 #include "vssp.hpp"
 
+#ifndef _INVALID_RANGE
+#define _INVALID_RANGE 1
+#endif
 
 class hokuyo3d_node
 {
@@ -47,37 +50,49 @@ public:
         const vssp::data_range_size &data_range_size)
         {
             if(timestampBase == ros::Time(0)) return;
-            if(cloud.points.size() == 0)
+            if(cloud2.data.size() == 0)
             {
-                cloud.header.frame_id = frame_id;
-                cloud.header.stamp = timestampBase + ros::Duration(range_header.line_head_timestamp_ms * 0.001);
+                cloud2.header.frame_id = frame_id;
+                cloud2.header.stamp = timestampBase + ros::Duration(range_header.line_head_timestamp_ms * 0.001);
                 ping();
             }
-            // Pack scan data
-            for(int i = 0; i < data_range_size.necho; i ++)
+
+            cloud2.data.resize(((data_range_size.necho + points_size) * cloud2.point_step));
+
+#if _INVALID_RANGE
+            // Check invalid rang
+            int i, invalid;
+            for(i = 0, invalid = 0; i < data_range_size.necho; i++)
             {
-                // Invalidate incorrect data
                 double distance= sqrt(points[i].x * points[i].x + points[i].y * points[i].y);
                 if (distance < invalid_range){
+                    invalid++;
+                    std::vector<uint8_t>::iterator it = cloud2.data.end();
+                    cloud2.data.erase(it - cloud2.point_step, it);
                     continue;
                 }
-
-                geometry_msgs::Point32 point;
-                point.x = points[i].x;
-                point.y = points[i].y;
-                point.z = points[i].z;
-                cloud.points.push_back(point);
-                cloud.channels[0].values.push_back(points[i].i);
+                // Pack scan data
+                memcpy (&cloud2.data[(i + points_size) * cloud2.point_step + cloud2.fields[0].offset], &points[i], sizeof (float) * cloud2.fields.size());
             }
+            points_size += data_range_size.necho - invalid;
+#else
+            // Pack scan data
+            memcpy (&cloud2.data[points_size * cloud2.point_step], &points[0], sizeof(float) * cloud2.fields.size() * data_range_size.necho);
+            points_size += data_range_size.necho;
+#endif
             // Publish frame
             if(range_header.frame != frame)
             {
-                pubPc.publish(cloud);
+                cloud2.width = points_size;
+                cloud2.row_step = cloud2.point_step * cloud2.width;
+                pubPc2.publish(cloud2);
+
                 field = range_header.field;
                 frame = range_header.frame;
-                cloud.points.clear();
-                cloud.channels[0].values.clear();
+                points_size = 0;
+                cloud2.data.clear();
             }
+
         };
 
     void cbPoint_frame(
@@ -89,38 +104,50 @@ public:
         const vssp::data_range_size &data_range_size)
         {
             if(timestampBase == ros::Time(0)) return;
-            if(cloud.points.size() == 0)
+            if(cloud2.data.size() == 0)
             {
-                cloud.header.frame_id = frame_id;
-                cloud.header.stamp = timestampBase + ros::Duration(range_header.line_head_timestamp_ms * 0.001);
+                cloud2.header.frame_id = frame_id;
+                cloud2.header.stamp = timestampBase + ros::Duration(range_header.line_head_timestamp_ms * 0.001);
                 ping();
             }
-            // Pack scan data
-            for(int i = 0; i < data_range_size.necho; i ++)
+
+            cloud2.data.resize(((data_range_size.necho + points_size) * cloud2.point_step));
+
+#if _INVALID_RANGE
+            // Check invalid rang
+            int i, invalid;
+            for(i = 0, invalid = 0; i < data_range_size.necho; i++)
             {
-                // Invalidate incorrect data
                 double distance= sqrt(points[i].x * points[i].x + points[i].y * points[i].y);
                 if (distance < invalid_range){
+                    invalid++;
+                    std::vector<uint8_t>::iterator it = cloud2.data.end();
+                    cloud2.data.erase(it - cloud2.point_step, it);
                     continue;
                 }
-
-                geometry_msgs::Point32 point;
-                point.x = points[i].x;
-                point.y = points[i].y;
-                point.z = points[i].z;
-                cloud.points.push_back(point);
-                cloud.channels[0].values.push_back(points[i].i);
+                // Pack scan data
+                memcpy (&cloud2.data[(i + points_size) * cloud2.point_step + cloud2.fields[0].offset], &points[i], sizeof (float) * cloud2.fields.size());
             }
+            points_size += data_range_size.necho - invalid;
+#else
+            // Pack scan data
+            memcpy (&cloud2.data[points_size * cloud2.point_step], &points[0], sizeof(float) * cloud2.fields.size() * data_range_size.necho);
+            points_size += data_range_size.necho;
+#endif
             // Publish frame
             if(range_header.field != field ||
                range_header.frame != frame)
             {
-                pubPc.publish(cloud);
+                cloud2.width = points_size;
+                cloud2.row_step = cloud2.point_step * cloud2.width;
+                pubPc2.publish(cloud2);
+
                 field = range_header.field;
                 frame = range_header.frame;
-                cloud.points.clear();
-                cloud.channels[0].values.clear();
+                points_size = 0;
+                cloud2.data.clear();
             }
+
         };
 
     void cbPing(const vssp::header &header, const std::chrono::microseconds &delayRead)
@@ -200,9 +227,11 @@ public:
             nh.param("ip", ip, std::string("192.168.0.10"));
             nh.param("port", port, 10940);
             nh.param("frame_id", frame_id, std::string("hokuyo3d"));
+#if _INVALID_RANGE
             nh.param("invalid_range", invalid_range, 0.0);
+#endif
             nh.param("interlaced_cycle", interlaced_cycle, true);
-            pubPc = nh.advertise<sensor_msgs::PointCloud>("hokuyo_cloud", 5);
+            pubPc2 = nh.advertise<sensor_msgs::PointCloud2>("hokuyo_cloud2", 5);
             pubImu = nh.advertise<sensor_msgs::Imu>("imu", 5);
             pubMag = nh.advertise<sensor_msgs::MagneticField>("mag", 5);
 
@@ -223,10 +252,25 @@ public:
                 boost::bind(&hokuyo3d_node::cbPing, this, _1, _2));
             field = 0;
             frame = 0;
+            points_size = 0;
 
-            sensor_msgs::ChannelFloat32 channel;
-            channel.name = std::string("intensity");
-            cloud.channels.push_back(channel);
+            cloud2.height = 1;
+            cloud2.fields.resize(4);
+            cloud2.fields[0].name = "x";
+            cloud2.fields[1].name = "y";
+            cloud2.fields[2].name = "z";
+            int offset = 0;
+            // All offsets are *4, as all field data types are float32
+            for (size_t d = 0; d < cloud2.fields.size (); ++d, offset += 4)
+            {
+                cloud2.fields[d].offset = offset;
+                cloud2.fields[d].datatype = sensor_msgs::PointField::FLOAT32;
+                cloud2.fields[d].count  = 1;
+            }
+            cloud2.point_step = offset;
+            cloud2.fields[3].name = "intensity";
+            cloud2.is_bigendian = false;
+            cloud2.is_dense     = false;
         };
     ~hokuyo3d_node()
         {
@@ -253,10 +297,11 @@ public:
 private:
     ros::NodeHandle nh;
     ros::Publisher pubPc;
+    ros::Publisher pubPc2;
     ros::Publisher pubImu;
     ros::Publisher pubMag;
     vssp::vsspDriver driver;
-    sensor_msgs::PointCloud cloud;
+    sensor_msgs::PointCloud2 cloud2;
     sensor_msgs::Imu imu;
     sensor_msgs::MagneticField mag;
 
@@ -265,7 +310,10 @@ private:
 
     int field;
     int frame;
+    int points_size;
+#if _INVALID_RANGE
     double invalid_range;
+#endif
 
     std::string ip;
     int port;
@@ -277,7 +325,7 @@ private:
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "hokuyo3d_pointcloud");
+    ros::init(argc, argv, "hokuyo3d_pointcloud2");
     hokuyo3d_node node;
 
     ros::Rate wait(200);
