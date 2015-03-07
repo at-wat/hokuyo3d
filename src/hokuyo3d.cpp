@@ -200,7 +200,7 @@ public:
 			nh.param("ip", ip, std::string("192.168.0.10"));
 			nh.param("port", port, 10940);
 			nh.param("frame_id", frame_id, std::string("hokuyo3d"));
-            nh.param("invalid_range", invalid_range, 0.30);
+            nh.param("invalid_range", invalid_range, 0.0);
             nh.param("interlaced_cycle", interlaced_cycle, true);
             pubPc = nh.advertise<sensor_msgs::PointCloud>("hokuyo_cloud", 5);
 			pubImu = nh.advertise<sensor_msgs::Imu>("imu", 5);
