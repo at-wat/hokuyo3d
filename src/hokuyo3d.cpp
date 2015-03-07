@@ -38,7 +38,7 @@
 class hokuyo3d_node
 {
 public:
-    void cbPoint(
+    void cbPoint_field(
         const vssp::header &header,
         const vssp::range_header &range_header,
         const vssp::range_index &range_index,
@@ -56,10 +56,12 @@ public:
 			// Pack scan data
 			for(int i = 0; i < data_range_size.necho; i ++)
 			{
+                // Invalidate incorrect data
                 double distance= sqrt(points[i].x * points[i].x + points[i].y * points[i].y);
                 if (distance < invalid_range){
                     continue;
                 }
+
 				geometry_msgs::Point32 point;
 				point.x = points[i].x;
 				point.y = points[i].y;
@@ -77,6 +79,50 @@ public:
 				cloud.channels[0].values.clear();
 			}
 		};
+
+    void cbPoint_frame(
+        const vssp::header &header,
+        const vssp::range_header &range_header,
+        const vssp::range_index &range_index,
+        const boost::shared_array<vssp::xyzi> &points,
+        const std::chrono::microseconds &delayRead,
+        const vssp::data_range_size &data_range_size)
+		{
+			if(timestampBase == ros::Time(0)) return;
+			if(cloud.points.size() == 0)
+			{
+				cloud.header.frame_id = frame_id;
+				cloud.header.stamp = timestampBase + ros::Duration(range_header.line_head_timestamp_ms * 0.001);
+				ping();
+			}
+			// Pack scan data
+			for(int i = 0; i < data_range_size.necho; i ++)
+			{
+                // Invalidate incorrect data
+                double distance= sqrt(points[i].x * points[i].x + points[i].y * points[i].y);
+                if (distance < invalid_range){
+                    continue;
+                }
+
+				geometry_msgs::Point32 point;
+				point.x = points[i].x;
+				point.y = points[i].y;
+				point.z = points[i].z;
+				cloud.points.push_back(point);
+				cloud.channels[0].values.push_back(points[i].i);
+			}
+			// Publish frame
+            if(range_header.field != field ||
+               range_header.frame != frame)
+			{
+				pubPc.publish(cloud);
+				field = range_header.field;
+				frame = range_header.frame;
+				cloud.points.clear();
+				cloud.channels[0].values.clear();
+			}
+        };
+
     void cbPing(const vssp::header &header, const std::chrono::microseconds &delayRead)
 		{
 			ros::Time now = ros::Time::now() - ros::Duration(delayRead.count() * 0.001 * 0.001);
@@ -155,6 +201,7 @@ public:
 			nh.param("port", port, 10940);
 			nh.param("frame_id", frame_id, std::string("hokuyo3d"));
             nh.param("invalid_range", invalid_range, 0.30);
+            nh.param("interlaced_cycle", interlaced_cycle, true);
             pubPc = nh.advertise<sensor_msgs::PointCloud>("hokuyo_cloud", 5);
 			pubImu = nh.advertise<sensor_msgs::Imu>("imu", 5);
 			pubMag = nh.advertise<sensor_msgs::MagneticField>("mag", 5);
@@ -163,8 +210,13 @@ public:
 			ROS_INFO("Connecting to %s", ip.c_str());
 			driver.connect(ip.c_str(), port,
                            boost::bind(&hokuyo3d_node::cbConnect, this, _1));
-			driver.registerCallback(
-                boost::bind(&hokuyo3d_node::cbPoint, this, _1, _2, _3, _4, _5, _6));
+            if(interlaced_cycle) {
+                driver.registerCallback(
+                    boost::bind(&hokuyo3d_node::cbPoint_field, this, _1, _2, _3, _4, _5, _6));
+            } else {
+                driver.registerCallback(
+                    boost::bind(&hokuyo3d_node::cbPoint_frame, this, _1, _2, _3, _4, _5, _6));
+            }
 			driver.registerAuxCallback(
                 boost::bind(&hokuyo3d_node::cbAux, this, _1, _2, _3, _4));
 			driver.registerPingCallback(
@@ -219,6 +271,7 @@ private:
     int port;
     int interlace;
     std::string frame_id;
+    bool interlaced_cycle;
 };
 
 
