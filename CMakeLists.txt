@@ -28,3 +28,6 @@ target_link_libraries(hokuyo3d_pointcloud ${catkin_LIBRARIES} ${Boost_LIBRARIES}
 
 add_executable(hokuyo3d_pointcloud2 src/hokuyo3d_pointcloud2.cpp src/vssp.hpp)
 target_link_libraries(hokuyo3d_pointcloud2 ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+add_executable(hokuyo3d_pointcloud_pointcloud2 src/hokuyo3d_pointcloud_pointcloud2.cpp src/vssp.hpp)
+target_link_libraries(hokuyo3d_pointcloud_pointcloud2 ${catkin_LIBRARIES} ${Boost_LIBRARIES})
