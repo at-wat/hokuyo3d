@@ -160,10 +160,10 @@ namespace vssp
 	class xyzi
 	{
 	public:
-		double x;
-		double y;
-		double z;
-		double i;
+		float x;
+		float y;
+		float z;
+		float i;
 
 		xyzi()
             {
