@@ -23,5 +23,5 @@ endif()
 
 include_directories(${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
-add_executable(hokuyo3d_pointcloud src/hokuyo3d.cpp src/vssp.hpp)
+add_executable(hokuyo3d_pointcloud src/hokuyo3d_pointcloud.cpp src/vssp.hpp)
 target_link_libraries(hokuyo3d_pointcloud ${catkin_LIBRARIES} ${Boost_LIBRARIES})
