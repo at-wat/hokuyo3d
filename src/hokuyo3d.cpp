@@ -45,40 +45,40 @@ public:
         const boost::shared_array<vssp::xyzi> &points,
         const std::chrono::microseconds &delayRead,
         const vssp::data_range_size &data_range_size)
-		{
-			if(timestampBase == ros::Time(0)) return;
-			if(cloud.points.size() == 0)
-			{
-				cloud.header.frame_id = frame_id;
-				cloud.header.stamp = timestampBase + ros::Duration(range_header.line_head_timestamp_ms * 0.001);
-				ping();
-			}
-			// Pack scan data
-			for(int i = 0; i < data_range_size.necho; i ++)
-			{
+        {
+            if(timestampBase == ros::Time(0)) return;
+            if(cloud.points.size() == 0)
+            {
+                cloud.header.frame_id = frame_id;
+                cloud.header.stamp = timestampBase + ros::Duration(range_header.line_head_timestamp_ms * 0.001);
+                ping();
+            }
+            // Pack scan data
+            for(int i = 0; i < data_range_size.necho; i ++)
+            {
                 // Invalidate incorrect data
                 double distance= sqrt(points[i].x * points[i].x + points[i].y * points[i].y);
                 if (distance < invalid_range){
                     continue;
                 }
 
-				geometry_msgs::Point32 point;
-				point.x = points[i].x;
-				point.y = points[i].y;
-				point.z = points[i].z;
-				cloud.points.push_back(point);
-				cloud.channels[0].values.push_back(points[i].i);
-			}
-			// Publish frame
-			if(range_header.frame != frame)
-			{
-				pubPc.publish(cloud);
-				field = range_header.field;
-				frame = range_header.frame;
-				cloud.points.clear();
-				cloud.channels[0].values.clear();
-			}
-		};
+                geometry_msgs::Point32 point;
+                point.x = points[i].x;
+                point.y = points[i].y;
+                point.z = points[i].z;
+                cloud.points.push_back(point);
+                cloud.channels[0].values.push_back(points[i].i);
+            }
+            // Publish frame
+            if(range_header.frame != frame)
+            {
+                pubPc.publish(cloud);
+                field = range_header.field;
+                frame = range_header.frame;
+                cloud.points.clear();
+                cloud.channels[0].values.clear();
+            }
+        };
 
     void cbPoint_frame(
         const vssp::header &header,
@@ -87,128 +87,128 @@ public:
         const boost::shared_array<vssp::xyzi> &points,
         const std::chrono::microseconds &delayRead,
         const vssp::data_range_size &data_range_size)
-		{
-			if(timestampBase == ros::Time(0)) return;
-			if(cloud.points.size() == 0)
-			{
-				cloud.header.frame_id = frame_id;
-				cloud.header.stamp = timestampBase + ros::Duration(range_header.line_head_timestamp_ms * 0.001);
-				ping();
-			}
-			// Pack scan data
-			for(int i = 0; i < data_range_size.necho; i ++)
-			{
+        {
+            if(timestampBase == ros::Time(0)) return;
+            if(cloud.points.size() == 0)
+            {
+                cloud.header.frame_id = frame_id;
+                cloud.header.stamp = timestampBase + ros::Duration(range_header.line_head_timestamp_ms * 0.001);
+                ping();
+            }
+            // Pack scan data
+            for(int i = 0; i < data_range_size.necho; i ++)
+            {
                 // Invalidate incorrect data
                 double distance= sqrt(points[i].x * points[i].x + points[i].y * points[i].y);
                 if (distance < invalid_range){
                     continue;
                 }
 
-				geometry_msgs::Point32 point;
-				point.x = points[i].x;
-				point.y = points[i].y;
-				point.z = points[i].z;
-				cloud.points.push_back(point);
-				cloud.channels[0].values.push_back(points[i].i);
-			}
-			// Publish frame
+                geometry_msgs::Point32 point;
+                point.x = points[i].x;
+                point.y = points[i].y;
+                point.z = points[i].z;
+                cloud.points.push_back(point);
+                cloud.channels[0].values.push_back(points[i].i);
+            }
+            // Publish frame
             if(range_header.field != field ||
                range_header.frame != frame)
-			{
-				pubPc.publish(cloud);
-				field = range_header.field;
-				frame = range_header.frame;
-				cloud.points.clear();
-				cloud.channels[0].values.clear();
-			}
+            {
+                pubPc.publish(cloud);
+                field = range_header.field;
+                frame = range_header.frame;
+                cloud.points.clear();
+                cloud.channels[0].values.clear();
+            }
         };
 
     void cbPing(const vssp::header &header, const std::chrono::microseconds &delayRead)
-		{
-			ros::Time now = ros::Time::now() - ros::Duration(delayRead.count() * 0.001 * 0.001);
-			ros::Duration delay = ((now - timePing)
+        {
+            ros::Time now = ros::Time::now() - ros::Duration(delayRead.count() * 0.001 * 0.001);
+            ros::Duration delay = ((now - timePing)
                                    - ros::Duration(header.send_time_ms * 0.001 - header.received_time_ms * 0.001)) * 0.5;
-			ros::Time base = timePing + delay - ros::Duration(header.received_time_ms * 0.001);
-			if(timestampBase == ros::Time(0)) timestampBase = base;
-			else timestampBase += (base - timestampBase) * 0.01;
-		}
+            ros::Time base = timePing + delay - ros::Duration(header.received_time_ms * 0.001);
+            if(timestampBase == ros::Time(0)) timestampBase = base;
+            else timestampBase += (base - timestampBase) * 0.01;
+        }
     void cbAux(
         const vssp::header &header,
         const vssp::aux_header &aux_header,
         const boost::shared_array<vssp::aux> &auxs,
         const std::chrono::microseconds &delayRead)
-		{
-			if(timestampBase == ros::Time(0)) return;
-			ros::Time stamp = timestampBase + ros::Duration(aux_header.timestamp_ms * 0.001);
+        {
+            if(timestampBase == ros::Time(0)) return;
+            ros::Time stamp = timestampBase + ros::Duration(aux_header.timestamp_ms * 0.001);
 
-			if((aux_header.data_bitfield & (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC))
+            if((aux_header.data_bitfield & (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC))
                == (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC))
-			{
-				imu.header.frame_id = frame_id;
-				imu.header.stamp = stamp;
-				for(int i = 0; i < aux_header.data_count; i ++)
-				{
-					imu.orientation_covariance[0] = -1.0;
-					imu.angular_velocity.x = auxs[i].ang_vel.x;
-					imu.angular_velocity.y = auxs[i].ang_vel.y;
-					imu.angular_velocity.z = auxs[i].ang_vel.z;
-					imu.linear_acceleration.x = auxs[i].lin_acc.x;
-					imu.linear_acceleration.y = auxs[i].lin_acc.y;
-					imu.linear_acceleration.z = auxs[i].lin_acc.z;
-					pubImu.publish(imu);
-					imu.header.stamp += ros::Duration(aux_header.data_ms * 0.001);
-				}
-			}
-			if((aux_header.data_bitfield & vssp::AX_MASK_MAG) == vssp::AX_MASK_MAG )
-			{
-				mag.header.frame_id = frame_id;
-				mag.header.stamp = stamp;
-				for(int i = 0; i < aux_header.data_count; i ++)
-				{
-					mag.magnetic_field.x = auxs[i].mag.x;
-					mag.magnetic_field.y = auxs[i].mag.y;
-					mag.magnetic_field.z = auxs[i].mag.z;
-					pubMag.publish(mag);
-					mag.header.stamp += ros::Duration(aux_header.data_ms * 0.001);
-				}
-			}
-		};
+            {
+                imu.header.frame_id = frame_id;
+                imu.header.stamp = stamp;
+                for(int i = 0; i < aux_header.data_count; i ++)
+                {
+                    imu.orientation_covariance[0] = -1.0;
+                    imu.angular_velocity.x = auxs[i].ang_vel.x;
+                    imu.angular_velocity.y = auxs[i].ang_vel.y;
+                    imu.angular_velocity.z = auxs[i].ang_vel.z;
+                    imu.linear_acceleration.x = auxs[i].lin_acc.x;
+                    imu.linear_acceleration.y = auxs[i].lin_acc.y;
+                    imu.linear_acceleration.z = auxs[i].lin_acc.z;
+                    pubImu.publish(imu);
+                    imu.header.stamp += ros::Duration(aux_header.data_ms * 0.001);
+                }
+            }
+            if((aux_header.data_bitfield & vssp::AX_MASK_MAG) == vssp::AX_MASK_MAG )
+            {
+                mag.header.frame_id = frame_id;
+                mag.header.stamp = stamp;
+                for(int i = 0; i < aux_header.data_count; i ++)
+                {
+                    mag.magnetic_field.x = auxs[i].mag.x;
+                    mag.magnetic_field.y = auxs[i].mag.y;
+                    mag.magnetic_field.z = auxs[i].mag.z;
+                    pubMag.publish(mag);
+                    mag.header.stamp += ros::Duration(aux_header.data_ms * 0.001);
+                }
+            }
+        };
     void cbConnect(bool success)
-		{
-			if(success)
-			{
-				ROS_INFO("Connection established");
-				ping();
-				driver.setInterlace(interlace);
-				driver.requestHorizontalTable();
-				driver.requestVerticalTable();
-				driver.requestData(true, true);
-				driver.requestAuxData();
-				driver.receivePackets();
-				ROS_INFO("Communication started");
-			}
-			else
-			{
-				ROS_ERROR("Connection failed");
-			}
-		};
+        {
+            if(success)
+            {
+                ROS_INFO("Connection established");
+                ping();
+                driver.setInterlace(interlace);
+                driver.requestHorizontalTable();
+                driver.requestVerticalTable();
+                driver.requestData(true, true);
+                driver.requestAuxData();
+                driver.receivePackets();
+                ROS_INFO("Communication started");
+            }
+            else
+            {
+                ROS_ERROR("Connection failed");
+            }
+        };
     hokuyo3d_node() :
         nh("~"),
         timestampBase(0)
-		{
-			nh.param("interlace", interlace, 4);
-			nh.param("ip", ip, std::string("192.168.0.10"));
-			nh.param("port", port, 10940);
-			nh.param("frame_id", frame_id, std::string("hokuyo3d"));
+        {
+            nh.param("interlace", interlace, 4);
+            nh.param("ip", ip, std::string("192.168.0.10"));
+            nh.param("port", port, 10940);
+            nh.param("frame_id", frame_id, std::string("hokuyo3d"));
             nh.param("invalid_range", invalid_range, 0.0);
             nh.param("interlaced_cycle", interlaced_cycle, true);
             pubPc = nh.advertise<sensor_msgs::PointCloud>("hokuyo_cloud", 5);
-			pubImu = nh.advertise<sensor_msgs::Imu>("imu", 5);
-			pubMag = nh.advertise<sensor_msgs::MagneticField>("mag", 5);
+            pubImu = nh.advertise<sensor_msgs::Imu>("imu", 5);
+            pubMag = nh.advertise<sensor_msgs::MagneticField>("mag", 5);
 
-			driver.setTimeout(2.0);
-			ROS_INFO("Connecting to %s", ip.c_str());
-			driver.connect(ip.c_str(), port,
+            driver.setTimeout(2.0);
+            ROS_INFO("Connecting to %s", ip.c_str());
+            driver.connect(ip.c_str(), port,
                            boost::bind(&hokuyo3d_node::cbConnect, this, _1));
             if(interlaced_cycle) {
                 driver.registerCallback(
@@ -217,39 +217,39 @@ public:
                 driver.registerCallback(
                     boost::bind(&hokuyo3d_node::cbPoint_frame, this, _1, _2, _3, _4, _5, _6));
             }
-			driver.registerAuxCallback(
+            driver.registerAuxCallback(
                 boost::bind(&hokuyo3d_node::cbAux, this, _1, _2, _3, _4));
-			driver.registerPingCallback(
+            driver.registerPingCallback(
                 boost::bind(&hokuyo3d_node::cbPing, this, _1, _2));
-			field = 0;
-			frame = 0;
+            field = 0;
+            frame = 0;
 
-			sensor_msgs::ChannelFloat32 channel;
-			channel.name = std::string("intensity");
-			cloud.channels.push_back(channel);
-		};
+            sensor_msgs::ChannelFloat32 channel;
+            channel.name = std::string("intensity");
+            cloud.channels.push_back(channel);
+        };
     ~hokuyo3d_node()
-		{
-			driver.requestAuxData(false);
-			driver.requestData(true, false);
-			driver.requestData(false, false);
-			driver.poll();
-			ROS_INFO("Communication stoped");
-		};
+        {
+            driver.requestAuxData(false);
+            driver.requestData(true, false);
+            driver.requestData(false, false);
+            driver.poll();
+            ROS_INFO("Communication stoped");
+        };
     bool poll()
-		{
-			if(driver.poll())
-			{
-				return true;
-			}
-			ROS_ERROR("Connection closed");
-			return false;
-		};
+        {
+            if(driver.poll())
+            {
+                return true;
+            }
+            ROS_ERROR("Connection closed");
+            return false;
+        };
     void ping()
-		{
-			driver.requestPing();
-			timePing = ros::Time::now();
-		};
+        {
+            driver.requestPing();
+            timePing = ros::Time::now();
+        };
 private:
     ros::NodeHandle nh;
     ros::Publisher pubPc;
@@ -277,17 +277,17 @@ private:
 
 int main(int argc, char **argv)
 {
-	ros::init(argc, argv, "hokuyo3d");
-	hokuyo3d_node node;
+    ros::init(argc, argv, "hokuyo3d");
+    hokuyo3d_node node;
 
-	ros::Rate wait(200);
+    ros::Rate wait(200);
 
-	while (ros::ok())
-	{
-		if(!node.poll()) break;
-		ros::spinOnce();
-		wait.sleep();
-	}
+    while (ros::ok())
+    {
+        if(!node.poll()) break;
+        ros::spinOnce();
+        wait.sleep();
+    }
 
-	return 1;
+    return 1;
 }
