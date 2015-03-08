@@ -28,10 +28,14 @@
  */
 
 #include <boost/bind.hpp>
+#include <mutex>
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/MagneticField.h>
 #include <sensor_msgs/Imu.h>
+#include <sensor_msgs/point_cloud_conversion.h>
+
 #include "vssp.hpp"
 
 
@@ -75,7 +79,12 @@ class hokuyo3d_node
 						(range_header.frame != frame)) ||
 					(cycle == CYCLE_LINE))
 			{
-				pubPc.publish(cloud);
+				if(enablePc) pubPc.publish(cloud);
+				if(enablePc2)
+				{
+					convertPointCloudToPointCloud2(cloud, cloud2);
+					pubPc2.publish(cloud2);
+				}
 				field = range_header.field;
 				frame = range_header.frame;
 				line = range_header.line;
@@ -177,11 +186,6 @@ class hokuyo3d_node
 				ros::shutdown();
 			}
 
-
-			pubPc = nh.advertise<sensor_msgs::PointCloud>("hokuyo_cloud", 5);
-			pubImu = nh.advertise<sensor_msgs::Imu>("imu", 5);
-			pubMag = nh.advertise<sensor_msgs::MagneticField>("mag", 5);
-
 			driver.setTimeout(2.0);
 			ROS_INFO("Connecting to %s", ip.c_str());
 			driver.connect(ip.c_str(), port, 
@@ -199,6 +203,17 @@ class hokuyo3d_node
 			sensor_msgs::ChannelFloat32 channel;
 			channel.name = std::string("intensity");
 			cloud.channels.push_back(channel);
+
+			pubImu = nh.advertise<sensor_msgs::Imu>("imu", 5);
+			pubMag = nh.advertise<sensor_msgs::MagneticField>("mag", 5);
+
+			enablePc = enablePc2 = false;
+			ros::SubscriberStatusCallback cbCon =
+				boost::bind(&hokuyo3d_node::cbSubscriber, this);
+
+			std::lock_guard<std::mutex> lock(connect_mutex);
+			pubPc = nh.advertise<sensor_msgs::PointCloud>("hokuyo_cloud", 5, cbCon, cbCon);
+			pubPc2 = nh.advertise<sensor_msgs::PointCloud2>("hokuyo_cloud2", 5, cbCon, cbCon);
 		};
 		~hokuyo3d_node()
 		{
@@ -208,6 +223,30 @@ class hokuyo3d_node
 			driver.poll();
 			ROS_INFO("Communication stoped");
 		};
+		void cbSubscriber()
+		{
+			std::lock_guard<std::mutex> lock(connect_mutex);
+			if(pubPc.getNumSubscribers() > 0)
+			{
+				enablePc = true;
+				ROS_DEBUG("PointCloud output enabled");
+			}
+			else
+			{
+				enablePc = false;
+				ROS_DEBUG("PointCloud output disabled");
+			}
+			if(pubPc2.getNumSubscribers() > 0)
+			{
+				enablePc2 = true;
+				ROS_DEBUG("PointCloud2 output enabled");
+			}
+			else
+			{
+				enablePc2 = false;
+				ROS_DEBUG("PointCloud2 output disabled");
+			}
+		}
 		bool poll()
 		{
 			if(driver.poll())
@@ -225,12 +264,18 @@ class hokuyo3d_node
 	private:
 		ros::NodeHandle nh;
 		ros::Publisher pubPc;
+		ros::Publisher pubPc2;
 		ros::Publisher pubImu;
 		ros::Publisher pubMag;
 		vssp::vsspDriver driver;
 		sensor_msgs::PointCloud cloud;
+		sensor_msgs::PointCloud2 cloud2;
 		sensor_msgs::Imu imu;
 		sensor_msgs::MagneticField mag;
+
+		bool enablePc;
+		bool enablePc2;
+		std::mutex connect_mutex;
 
 		ros::Time timePing;
 		ros::Time timestampBase;
