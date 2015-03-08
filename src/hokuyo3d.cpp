@@ -67,13 +67,18 @@ class hokuyo3d_node
 				cloud.points.push_back(point);
 				cloud.channels[0].values.push_back(points[i].i);
 			}
-			// Publish frame
-			if(range_header.field != field ||
-					range_header.frame != frame)
+			// Publish points
+			if((cycle == CYCLE_FIELD &&
+						(range_header.field != field ||
+						 range_header.frame != frame)) ||
+					(cycle == CYCLE_FRAME &&
+						(range_header.frame != frame)) ||
+					(cycle == CYCLE_LINE))
 			{
 				pubPc.publish(cloud);
 				field = range_header.field;
 				frame = range_header.frame;
+				line = range_header.line;
 				cloud.points.clear();
 				cloud.channels[0].values.clear();
 			}
@@ -156,6 +161,23 @@ class hokuyo3d_node
 			nh.param("port", port, 10940);
 			nh.param("frame_id", frame_id, std::string("hokuyo3d"));
 			nh.param("range_min", range_min, 0.0);
+
+			std::string output_cycle;
+			nh.param("output_cycle", output_cycle, std::string("field"));
+
+			if(output_cycle.compare("frame") == 0)
+				cycle = CYCLE_FRAME;
+			else if(output_cycle.compare("field") == 0)
+				cycle = CYCLE_FIELD;
+			else if(output_cycle.compare("line") == 0)
+				cycle = CYCLE_LINE;
+			else
+			{
+				ROS_ERROR("Unknown output_cycle value %s", output_cycle.c_str());
+				ros::shutdown();
+			}
+
+
 			pubPc = nh.advertise<sensor_msgs::PointCloud>("hokuyo_cloud", 5);
 			pubImu = nh.advertise<sensor_msgs::Imu>("imu", 5);
 			pubMag = nh.advertise<sensor_msgs::MagneticField>("mag", 5);
@@ -172,6 +194,7 @@ class hokuyo3d_node
 					boost::bind(&hokuyo3d_node::cbPing, this, _1, _2));
 			field = 0;
 			frame = 0;
+			line = 0;
 
 			sensor_msgs::ChannelFloat32 channel;
 			channel.name = std::string("intensity");
@@ -214,7 +237,14 @@ class hokuyo3d_node
 
 		int field;
 		int frame;
+		int line;
 
+		enum
+		{
+			CYCLE_FIELD,
+			CYCLE_FRAME,
+			CYCLE_LINE
+		} cycle;
 		std::string ip;
 		int port;
 		int interlace;
