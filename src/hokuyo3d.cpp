@@ -134,6 +134,10 @@ class hokuyo3d_node
 				line = range_header.line;
 			}
 		};
+		void cbError(const vssp::header &header, const std::string &message)
+		{
+			ROS_ERROR("%s", message.c_str());
+		}
 		void cbPing(const vssp::header &header, const std::chrono::microseconds &delayRead)
 		{
 			ros::Time now = ros::Time::now() - ros::Duration(delayRead.count() * 0.001 * 0.001);
@@ -238,6 +242,8 @@ class hokuyo3d_node
 					boost::bind(&hokuyo3d_node::cbAux, this, _1, _2, _3, _4));
 			driver.registerPingCallback(
 					boost::bind(&hokuyo3d_node::cbPing, this, _1, _2));
+			driver.registerErrorCallback(
+					boost::bind(&hokuyo3d_node::cbError, this, _1, _2));
 			field = 0;
 			frame = 0;
 			line = 0;

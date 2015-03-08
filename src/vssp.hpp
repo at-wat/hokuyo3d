@@ -61,6 +61,8 @@ private:
 			const std::chrono::microseconds &delayRead)> cbAux;
 	boost::function<void(const vssp::header&, 
 			const std::chrono::microseconds&)> cbPing;
+	boost::function<void(const vssp::header&, 
+			const std::string&)> cbError;
 	boost::function<void(bool)> cbConnect;
 	boost::shared_array<double> tblH;
 	boost::shared_array<table_sincos> tblV;
@@ -102,6 +104,10 @@ public:
 					this, 
 					boost::asio::placeholders::error));
 		timeReadLast = std::chrono::system_clock::now();
+	};
+	void registerErrorCallback(decltype(cbError) cb)
+	{
+		cbError = cb;
 	};
 	void registerCallback(decltype(cbPoint) cb)
 	{
@@ -264,7 +270,6 @@ private:
 		{
 			// Connection error
 			closed = true;
-			return;
 		}
 		while(true)
 		{
@@ -304,6 +309,23 @@ private:
 
 			do
 			{
+				switch(header.type)
+				{
+				case TYPE_ERR:
+				case TYPE_ER:
+					// Error message
+					{
+						const std::string data(boost::asio::buffer_cast<const char*>
+								(buf.data()));
+						std::string message(data, 
+								0, header.length - header.header_length - 1);
+						if(!cbError.empty()) 
+							cbError(header, message);
+					}
+					break;
+				default:
+					break;
+				}
 				if(header.status != vssp::STATUS_OK) break;
 
 				switch(header.type)
@@ -439,6 +461,8 @@ private:
 						}
 						if(!cbAux.empty()) cbAux(header, aux_header, auxs, delay);
 					}
+					break;
+				default:
 					break;
 				}
 			}

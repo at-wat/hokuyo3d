@@ -59,12 +59,16 @@ namespace vssp
 		= ('V' << 0) | ('E' << 8) | ('R' << 16) | (':' << 24);
 	static const uint32_t TYPE_PNG
 		= ('P' << 0) | ('N' << 8) | ('G' << 16) | (':' << 24);
+	static const uint32_t TYPE_ERR
+		= ('E' << 0) | ('R' << 8) | ('R' << 16) | (':' << 24);
 	static const uint32_t TYPE_RI
 		= ('_' << 0) | ('r' << 8) | ('i' << 16) | (':' << 24);
 	static const uint32_t TYPE_RO
 		= ('_' << 0) | ('r' << 8) | ('o' << 16) | (':' << 24);
 	static const uint32_t TYPE_AX
 		= ('_' << 0) | ('a' << 8) | ('x' << 16) | (':' << 24);
+	static const uint32_t TYPE_ER
+		= ('_' << 0) | ('e' << 8) | ('r' << 16) | (':' << 24);
 
 	enum aux_id
 	{
