@@ -52,6 +52,7 @@ private:
 	boost::function<void(const vssp::header&,
 			const vssp::range_header&, 
 			const vssp::range_index&, 
+			const boost::shared_array<uint16_t>&,
 			const boost::shared_array<vssp::xyzi>&,
 			const std::chrono::microseconds &delayRead)> cbPoint;
 	boost::function<void(const vssp::header&,
@@ -406,7 +407,7 @@ private:
 								(range_header, range_index, index, points);
 							break;
 						}
-						cbPoint(header, range_header, range_index, points, delay);
+						cbPoint(header, range_header, range_index, index, points, delay);
 					}
 					break;
 				case TYPE_AX:

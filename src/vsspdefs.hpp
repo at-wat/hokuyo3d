@@ -160,6 +160,7 @@ namespace vssp
 		double y;
 		double z;
 		double i;
+		double r;
 
 		xyzi()
 		{
@@ -167,6 +168,7 @@ namespace vssp
 		xyzi(double &v_sin, double &v_cos, double &h_sin, double &h_cos)
 		{
 			i = 0;
+			r = 0;
 			x = v_cos * h_cos;
 			y = v_cos * h_sin;
 			z = v_sin;
@@ -179,6 +181,7 @@ namespace vssp
 			ret.x *= r;
 			ret.y *= r;
 			ret.z *= r;
+			ret.r = r;
 			return ret;
 		};
 		xyzi operator *(const data_range_only &data)
@@ -189,6 +192,7 @@ namespace vssp
 			ret.x *= r;
 			ret.y *= r;
 			ret.z *= r;
+			ret.r = r;
 			return *this;
 		};
 	};

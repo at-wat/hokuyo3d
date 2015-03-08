@@ -42,6 +42,7 @@ class hokuyo3d_node
 				const vssp::header &header, 
 				const vssp::range_header &range_header, 
 				const vssp::range_index &range_index,
+				const boost::shared_array<uint16_t> &index,
 				const boost::shared_array<vssp::xyzi> &points,
 				const std::chrono::microseconds &delayRead)
 		{
@@ -53,7 +54,7 @@ class hokuyo3d_node
 				ping();
 			}
 			// Pack scan data
-			for(int i = 0; i < range_index.nspots; i ++)
+			for(int i = 0; i < index[range_index.nspots]; i ++)
 			{
 				geometry_msgs::Point32 point;
 				point.x = points[i].x;
@@ -159,7 +160,7 @@ class hokuyo3d_node
 			driver.connect(ip.c_str(), port, 
 					boost::bind(&hokuyo3d_node::cbConnect, this, _1));
 			driver.registerCallback(
-					boost::bind(&hokuyo3d_node::cbPoint, this, _1, _2, _3, _4, _5));
+					boost::bind(&hokuyo3d_node::cbPoint, this, _1, _2, _3, _4, _5, _6));
 			driver.registerAuxCallback(
 					boost::bind(&hokuyo3d_node::cbAux, this, _1, _2, _3, _4));
 			driver.registerPingCallback(
