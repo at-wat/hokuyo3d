@@ -32,6 +32,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/point_cloud2_iterator.h>
 #include <sensor_msgs/MagneticField.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/point_cloud_conversion.h>
@@ -51,25 +52,61 @@ class hokuyo3d_node
 				const std::chrono::microseconds &delayRead)
 		{
 			if(timestampBase == ros::Time(0)) return;
-			if(cloud.points.size() == 0)
-			{
-				cloud.header.frame_id = frame_id;
-				cloud.header.stamp = timestampBase + ros::Duration(range_header.line_head_timestamp_ms * 0.001);
-				ping();
-			}
 			// Pack scan data
-			for(int i = 0; i < index[range_index.nspots]; i ++)
+			if(enablePc)
 			{
-				if(points[i].r < range_min)
+				if(cloud.points.size() == 0)
 				{
-					continue;
+					// Start packing PointCloud message
+					cloud.header.frame_id = frame_id;
+					cloud.header.stamp = timestampBase
+						+ ros::Duration(range_header.line_head_timestamp_ms * 0.001);
 				}
-				geometry_msgs::Point32 point;
-				point.x = points[i].x;
-				point.y = points[i].y;
-				point.z = points[i].z;
-				cloud.points.push_back(point);
-				cloud.channels[0].values.push_back(points[i].i);
+				// Pack PointCloud message
+				for(int i = 0; i < index[range_index.nspots]; i ++)
+				{
+					if(points[i].r < range_min)
+					{
+						continue;
+					}
+					geometry_msgs::Point32 point;
+					point.x = points[i].x;
+					point.y = points[i].y;
+					point.z = points[i].z;
+					cloud.points.push_back(point);
+					cloud.channels[0].values.push_back(points[i].i);
+				}
+			}
+			if(enablePc2)
+			{
+				if(cloud2.data.size() == 0)
+				{
+					// Start packing PointCloud2 message
+					cloud2.header.frame_id = frame_id;
+					cloud2.header.stamp = timestampBase
+						+ ros::Duration(range_header.line_head_timestamp_ms * 0.001);
+					cloud2.row_step = 0;
+					cloud2.width = 0;
+				}
+				// Pack PointCloud2 message
+				cloud2.data.resize((cloud2.width + index[range_index.nspots])
+					   	* cloud2.point_step);
+
+				float *data = reinterpret_cast<float*>(&cloud2.data[0]);
+				data += cloud2.width * cloud2.point_step / sizeof(float);
+				for(int i = 0; i < index[range_index.nspots]; i ++)
+				{
+					if(points[i].r < range_min)
+					{
+						continue;
+					}
+					*(data++) = points[i].x;
+					*(data++) = points[i].y;
+					*(data++) = points[i].z;
+					*(data++) = points[i].i;
+					cloud2.width ++;
+				}
+				cloud2.row_step = cloud2.width * cloud2.point_step;
 			}
 			// Publish points
 			if((cycle == CYCLE_FIELD &&
@@ -79,17 +116,22 @@ class hokuyo3d_node
 						(range_header.frame != frame)) ||
 					(cycle == CYCLE_LINE))
 			{
-				if(enablePc) pubPc.publish(cloud);
+				if(enablePc)
+				{
+					pubPc.publish(cloud);
+					cloud.points.clear();
+					cloud.channels[0].values.clear();
+				}
 				if(enablePc2)
 				{
-					convertPointCloudToPointCloud2(cloud, cloud2);
+					cloud2.data.resize(cloud2.width * cloud2.point_step);
 					pubPc2.publish(cloud2);
+					cloud2.data.clear();
 				}
-				field = range_header.field;
+				if(range_header.frame != frame) ping();
 				frame = range_header.frame;
+				field = range_header.field;
 				line = range_header.line;
-				cloud.points.clear();
-				cloud.channels[0].values.clear();
 			}
 		};
 		void cbPing(const vssp::header &header, const std::chrono::microseconds &delayRead)
@@ -204,6 +246,16 @@ class hokuyo3d_node
 			channel.name = std::string("intensity");
 			cloud.channels.push_back(channel);
 
+			cloud2.height = 1;
+			cloud2.is_bigendian = false;
+			cloud2.is_dense = false;
+			sensor_msgs::PointCloud2Modifier pc2_modifier(cloud2);
+			pc2_modifier.setPointCloud2Fields(4,
+					"x", 1, sensor_msgs::PointField::FLOAT32,
+					"y", 1, sensor_msgs::PointField::FLOAT32,
+					"z", 1, sensor_msgs::PointField::FLOAT32,
+					"intensity", 1, sensor_msgs::PointField::FLOAT32);
+
 			pubImu = nh.advertise<sensor_msgs::Imu>("imu", 5);
 			pubMag = nh.advertise<sensor_msgs::MagneticField>("mag", 5);
 
@@ -272,7 +324,7 @@ class hokuyo3d_node
 		sensor_msgs::PointCloud2 cloud2;
 		sensor_msgs::Imu imu;
 		sensor_msgs::MagneticField mag;
-
+				
 		bool enablePc;
 		bool enablePc2;
 		std::mutex connect_mutex;
