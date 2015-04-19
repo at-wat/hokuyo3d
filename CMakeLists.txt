@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(hokuyo3d)
+project(3d_urg)
 
 ## Find catkin and any catkin packages
 find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs)
@@ -23,11 +23,5 @@ endif()
 
 include_directories(${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
-add_executable(hokuyo3d_pointcloud src/hokuyo3d_pointcloud.cpp src/vssp.hpp)
-target_link_libraries(hokuyo3d_pointcloud ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-
-add_executable(hokuyo3d_pointcloud2 src/hokuyo3d_pointcloud2.cpp src/vssp.hpp)
-target_link_libraries(hokuyo3d_pointcloud2 ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-
-add_executable(hokuyo3d_pointcloud_pointcloud2 src/hokuyo3d_pointcloud_pointcloud2.cpp src/vssp.hpp)
-target_link_libraries(hokuyo3d_pointcloud_pointcloud2 ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+add_executable(3d_urg src/3d_urg.cpp src/vssp.hpp)
+target_link_libraries(3d_urg ${catkin_LIBRARIES} ${Boost_LIBRARIES})

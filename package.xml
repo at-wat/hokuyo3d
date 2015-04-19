@@ -1,13 +1,11 @@
 <?xml version="1.0"?>
 <package>
-  <name>hokuyo3d</name>
+  <name>3d_urg</name>
   <version>0.1.0</version>
   <description>ROS driver for HOKUYO 3D sensor</description>
 
   <maintainer email="yukky@ubi.cs.ritsumei.ac.jp">Yukihiro Saito</maintainer>
-  <maintainer email="atsushi.w@atr.jp">Atsushi Watanabe</maintainer>
   <license>BSD</license>
-  <author email="yukky@ubi.cs.ritsumei.ac.jp">Yukihiro Saito</author>
   <author email="atsushi.w@atr.jp">Atsushi Watanabe</author>
 
   <buildtool_depend>catkin</buildtool_depend>
