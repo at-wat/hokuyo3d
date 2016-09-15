@@ -25,3 +25,8 @@ include_directories(${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 add_executable(hokuyo3d src/hokuyo3d.cpp src/vssp.hpp)
 target_link_libraries(hokuyo3d ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+install(TARGETS hokuyo3d
+	LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+	RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
