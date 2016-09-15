@@ -4,9 +4,9 @@
   <version>0.1.0</version>
   <description>ROS driver for HOKUYO 3D sensor</description>
 
-  <maintainer email="atsushi.w@atr.jp">Atsushi Watanabe</maintainer>
+  <maintainer email="atsushi.w@ieee.org">Atsushi Watanabe</maintainer>
   <license>BSD</license>
-  <author email="atsushi.w@atr.jp">Atsushi Watanabe</author>
+  <author email="atsushi.w@ieee.org">Atsushi Watanabe</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
