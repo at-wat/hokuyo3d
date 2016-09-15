@@ -2,8 +2,8 @@
 Changelog for package hokuyo3d
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.1 (2016-09-15)
+------------------
 * updates e-mail address of the author
 * adds error-message packet handling
 * Merge branch 'lgerardSRI-master'
