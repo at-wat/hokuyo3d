@@ -4,6 +4,11 @@ Changelog for package hokuyo3d
 
 Forthcoming
 -----------
+* updates e-mail address of the author
+* adds error-message packet handling
+* Merge branch 'lgerardSRI-master'
+* Install the hokuyo3d executable
+* Contributors: Atsushi Watanabe, Leonard Gerard
 
 0.1.0 (2015-04-24)
 ------------------
