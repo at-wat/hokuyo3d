@@ -12,7 +12,6 @@ branches:
     - indigo-devel
 
 before_install:
-  - .travis.scripts/setup_docker.sh
   - .travis.scripts/load_cache.sh
   - .travis.scripts/cache_dataset.sh
 
