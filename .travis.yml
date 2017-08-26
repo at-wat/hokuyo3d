@@ -9,7 +9,7 @@ env:
     - DOCKER_CACHE_FILE=/home/travis/docker/cache.tar.lz4
 branches:
   only:
-    - master
+    - indigo-devel
 
 before_install:
   - .travis.scripts/setup_docker.sh
