@@ -13,7 +13,6 @@ branches:
 
 before_install:
   - .travis.scripts/load_cache.sh
-  - .travis.scripts/cache_dataset.sh
 
 install: true
 
