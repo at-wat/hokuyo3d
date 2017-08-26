@@ -159,7 +159,7 @@ class hokuyo3d_node
 			if((aux_header.data_bitfield & (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC))
 					== (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC))
 			{
-				imu.header.frame_id = frame_id;
+				imu.header.frame_id = imu_frame_id;
 				imu.header.stamp = stamp;
 				for(int i = 0; i < aux_header.data_count; i ++)
 				{
@@ -176,7 +176,7 @@ class hokuyo3d_node
 			}
 			if((aux_header.data_bitfield & vssp::AX_MASK_MAG) == vssp::AX_MASK_MAG )
 			{
-				mag.header.frame_id = frame_id;
+				mag.header.frame_id = mag_frame_id;
 				mag.header.stamp = stamp;
 				for(int i = 0; i < aux_header.data_count; i ++)
 				{
@@ -215,6 +215,8 @@ class hokuyo3d_node
 			nh.param("ip", ip, std::string("192.168.0.10"));
 			nh.param("port", port, 10940);
 			nh.param("frame_id", frame_id, std::string("hokuyo3d"));
+			nh.param("imu_frame_id", imu_frame_id, frame_id + "_imu");
+			nh.param("mag_frame_id", imu_frame_id, frame_id + "_mag");
 			nh.param("range_min", range_min, 0.0);
 
 			std::string output_cycle;
@@ -353,6 +355,8 @@ class hokuyo3d_node
 		int interlace;
 		double range_min;
 		std::string frame_id;
+		std::string imu_frame_id;
+		std::string mag_frame_id;
 };
 
 
