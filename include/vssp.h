@@ -153,7 +153,9 @@ public:
     timer_.cancel();
     timer_.expires_from_now(boost::posix_time::seconds(timeout_));
     timer_.async_wait(boost::bind(&VsspDriver::onTimeout, this, boost::asio::placeholders::error));
-    boost::asio::async_read(socket_, buf_, boost::asio::transfer_at_least(65536),
+    // Read at least 4 bytes.
+    // In most case, callback function will be called for each VSSP line.
+    boost::asio::async_read(socket_, buf_, boost::asio::transfer_at_least(4),
                             boost::bind(&VsspDriver::onRead, this, boost::asio::placeholders::error));
   };
   bool poll()
