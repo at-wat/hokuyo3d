@@ -216,7 +216,7 @@ class hokuyo3d_node
 			nh.param("port", port, 10940);
 			nh.param("frame_id", frame_id, std::string("hokuyo3d"));
 			nh.param("imu_frame_id", imu_frame_id, frame_id + "_imu");
-			nh.param("mag_frame_id", imu_frame_id, frame_id + "_mag");
+			nh.param("mag_frame_id", mag_frame_id, frame_id + "_mag");
 			nh.param("range_min", range_min, 0.0);
 
 			std::string output_cycle;
