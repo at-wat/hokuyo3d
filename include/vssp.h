@@ -65,8 +65,8 @@ private:
   boost::function<void(const vssp::Header &, const boost::chrono::microseconds &)> cb_ping_;
   boost::function<void(const vssp::Header &, const std::string &)> cb_error_;
   boost::function<void(bool)> cb_connect_;
-  boost::shared_array<double> tbl_h_;
-  boost::shared_array<TableSincos> tbl_v_;
+  boost::shared_array<const double> tbl_h_;
+  boost::shared_array<const TableSincos> tbl_v_;
   bool tbl_h_loaded_;
   bool tbl_v_loaded_;
   double timeout_;
@@ -88,11 +88,11 @@ public:
     , timeout_(1.0)
   {
   }
-  void setTimeout(double to)
+  void setTimeout(const double to)
   {
     timeout_ = to;
   };
-  void connect(const char *ip, unsigned int port, decltype(cb_connect_) cb)
+  void connect(const char *ip, const unsigned int port, decltype(cb_connect_) cb)
   {
     cb_connect_ = cb;
     boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(ip), port);
@@ -117,7 +117,7 @@ public:
   {
     cb_ping_ = cb;
   };
-  void setInterlace(int itl)
+  void setInterlace(const int itl)
   {
     send((boost::format("SET:_itl=0,%02d\n") % itl).str());
   };
@@ -133,11 +133,11 @@ public:
   {
     send(std::string("PNG\n"));
   };
-  void requestAuxData(bool start = 1)
+  void requestAuxData(const bool start = 1)
   {
     send((boost::format("DAT:ax=%d\n") % static_cast<int>(start)).str());
   }
-  void requestData(bool intensity = 1, bool start = 1)
+  void requestData(const bool intensity = 1, const bool start = 1)
   {
     if (intensity)
     {
@@ -170,7 +170,7 @@ public:
   };
 
 private:
-  void send(std::string cmd)
+  void send(const std::string cmd)
   {
     boost::shared_ptr<std::string> data(new std::string(cmd));
     boost::asio::async_write(socket_, boost::asio::buffer(*data),
@@ -213,30 +213,31 @@ private:
   };
   template <class DATA_TYPE>
   void rangeToXYZ(const vssp::RangeHeader &RangeHeader, const vssp::RangeIndex &RangeIndex,
-                  boost::shared_array<uint16_t> &index, boost::shared_array<vssp::XYZI> &points)
+                  const boost::shared_array<const uint16_t> &index,
+                  const boost::shared_array<vssp::XYZI> &points)
   {
     int i = 0;
 
-    double h_head = RangeHeader.line_head_h_angle_ratio * 2.0 * M_PI / 65535.0;
-    double h_tail = RangeHeader.line_tail_h_angle_ratio * 2.0 * M_PI / 65535.0;
+    const double h_head = RangeHeader.line_head_h_angle_ratio * 2.0 * M_PI / 65535.0;
+    const double h_tail = RangeHeader.line_tail_h_angle_ratio * 2.0 * M_PI / 65535.0;
     const DATA_TYPE *data = boost::asio::buffer_cast<const DATA_TYPE *>(buf_.data());
     for (int s = 0; s < RangeIndex.nspots; s++)
     {
-      double spot = s + RangeHeader.spot;
-      double h_rad = h_head + (h_tail - h_head) * tbl_h_[spot];
-      double h_cos = cos(h_rad);
-      double h_sin = sin(h_rad);
-      vssp::XYZI dir(tbl_v_[spot].s, tbl_v_[spot].c, h_sin, h_cos);
+      const double spot = s + RangeHeader.spot;
+      const double h_rad = h_head + (h_tail - h_head) * tbl_h_[spot];
+      const double h_cos = cos(h_rad);
+      const double h_sin = sin(h_rad);
+      const vssp::XYZI dir(tbl_v_[spot].s, tbl_v_[spot].c, h_sin, h_cos);
       for (int e = index[s]; e < index[s + 1]; e++)
         points[i++] = dir * data[e];
     }
   };
   void onRead(const boost::system::error_code &error)
   {
-    auto time_read = boost::chrono::system_clock::now();
+    const auto time_read = boost::chrono::system_clock::now();
     auto time = time_read_last_;
-    auto duration = time_read - time_read_last_;
-    auto length_total = buf_.size();
+    const auto duration = time_read - time_read_last_;
+    const auto length_total = buf_.size();
     if (error == boost::asio::error::eof)
     {
       // Connection closed_
@@ -274,7 +275,8 @@ private:
       }
       if (buf_.size() < Header.length)
         break;
-      auto delay = boost::chrono::duration_cast<boost::chrono::microseconds>(boost::chrono::system_clock::now() - time);
+      const auto delay = boost::chrono::duration_cast<boost::chrono::microseconds>(
+          boost::chrono::system_clock::now() - time);
       time += duration * Header.length / length_total;
 
       size_t length = Header.length - Header.header_length;
@@ -321,23 +323,25 @@ private:
 
                 if (lines[0].compare("GET:tblv") == 0)
                 {
-                  tbl_v_.reset(new TableSincos[cells.size()]);
+                  boost::shared_array<TableSincos> tbl_v(new TableSincos[cells.size()]);
                   for (auto &cell : cells)
                   {
-                    double rad(std::strtol(cell.c_str(), NULL, 16) * 2.0 * M_PI / 65535);
-                    sincos(rad, &tbl_v_[i].s, &tbl_v_[i].c);
+                    const double rad(std::strtol(cell.c_str(), NULL, 16) * 2.0 * M_PI / 65535);
+                    sincos(rad, &tbl_v[i].s, &tbl_v[i].c);
                     i++;
                   }
+                  tbl_v_ = tbl_v;
                   tbl_v_loaded_ = true;
                 }
                 else if (lines[0].compare("GET:tblh") == 0)
                 {
-                  tbl_h_.reset(new double[cells.size()]);
+                  boost::shared_array<double> tbl_h(new double[cells.size()]);
                   for (auto &cell : cells)
                   {
-                    tbl_h_[i] = static_cast<double>(std::strtol(cell.c_str(), NULL, 16) / 65535);
+                    tbl_h[i] = static_cast<double>(std::strtol(cell.c_str(), NULL, 16) / 65535);
                     i++;
                   }
+                  tbl_h_ = tbl_h;
                   tbl_h_loaded_ = true;
                 }
               }
