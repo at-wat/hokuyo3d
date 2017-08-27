@@ -252,11 +252,11 @@ public:
     pub_mag_ = pnh_.advertise<sensor_msgs::MagneticField>("mag", 5);
 
     enable_pc_ = enable_pc2_ = false;
-    ros::SubscriberStatusCallback cbCon = boost::bind(&Hokuyo3dNode::cbSubscriber, this);
+    ros::SubscriberStatusCallback cb_con = boost::bind(&Hokuyo3dNode::cbSubscriber, this);
 
     boost::lock_guard<boost::mutex> lock(connect_mutex_);
-    pub_pc_ = pnh_.advertise<sensor_msgs::PointCloud>("hokuyo_cloud", 5, cbCon, cbCon);
-    pub_pc2_ = pnh_.advertise<sensor_msgs::PointCloud2>("hokuyo_cloud2", 5, cbCon, cbCon);
+    pub_pc_ = pnh_.advertise<sensor_msgs::PointCloud>("hokuyo_cloud", 5, cb_con, cb_con);
+    pub_pc2_ = pnh_.advertise<sensor_msgs::PointCloud2>("hokuyo_cloud2", 5, cb_con, cb_con);
   };
   ~Hokuyo3dNode()
   {
