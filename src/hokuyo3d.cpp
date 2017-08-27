@@ -152,7 +152,7 @@ public:
     if ((AuxHeader.data_bitfield & (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC)) ==
         (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC))
     {
-      imu_.header.frame_id = frame_id_;
+      imu_.header.frame_id = imu_frame_id_;
       imu_.header.stamp = stamp;
       for (int i = 0; i < AuxHeader.data_count; i++)
       {
@@ -169,7 +169,7 @@ public:
     }
     if ((AuxHeader.data_bitfield & vssp::AX_MASK_MAG) == vssp::AX_MASK_MAG)
     {
-      mag_.header.frame_id = frame_id_;
+      mag_.header.frame_id = mag_frame_id_;
       mag_.header.stamp = stamp;
       for (int i = 0; i < AuxHeader.data_count; i++)
       {
@@ -206,6 +206,8 @@ public:
     pnh_.param("ip_", ip_, std::string("192.168.0.10"));
     pnh_.param("port_", port_, 10940);
     pnh_.param("frame_id_", frame_id_, std::string("hokuyo3d"));
+    pnh_.param("imu_frame_id", imu_frame_id_, frame_id_ + "_imu");
+    pnh_.param("mag_frame_id", mag_frame_id_, frame_id_ + "_mag");
     pnh_.param("range_min_", range_min_, 0.0);
 
     std::string output_cycle;
@@ -338,6 +340,8 @@ protected:
   int interlace_;
   double range_min_;
   std::string frame_id_;
+  std::string imu_frame_id_;
+  std::string mag_frame_id_;
 };
 
 int main(int argc, char **argv)
