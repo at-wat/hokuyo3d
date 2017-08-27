@@ -202,22 +202,22 @@ public:
   };
   Hokuyo3dNode() : pnh_("~"), timestamp_base_(0)
   {
-    pnh_.param("interlace_", interlace_, 4);
-    pnh_.param("ip_", ip_, std::string("192.168.0.10"));
-    pnh_.param("port_", port_, 10940);
-    pnh_.param("frame_id_", frame_id_, std::string("hokuyo3d"));
+    pnh_.param("interlace", interlace_, 4);
+    pnh_.param("ip", ip_, std::string("192.168.0.10"));
+    pnh_.param("port", port_, 10940);
+    pnh_.param("frame_id", frame_id_, std::string("hokuyo3d"));
     pnh_.param("imu_frame_id", imu_frame_id_, frame_id_ + "_imu");
     pnh_.param("mag_frame_id", mag_frame_id_, frame_id_ + "_mag");
-    pnh_.param("range_min_", range_min_, 0.0);
+    pnh_.param("range_min", range_min_, 0.0);
 
     std::string output_cycle;
-    pnh_.param("output_cycle", output_cycle, std::string("field_"));
+    pnh_.param("output_cycle", output_cycle, std::string("field"));
 
-    if (output_cycle.compare("frame_") == 0)
+    if (output_cycle.compare("frame") == 0)
       cycle_ = CYCLE_FRAME;
-    else if (output_cycle.compare("field_") == 0)
+    else if (output_cycle.compare("field") == 0)
       cycle_ = CYCLE_FIELD;
-    else if (output_cycle.compare("line_") == 0)
+    else if (output_cycle.compare("line") == 0)
       cycle_ = CYCLE_LINE;
     else
     {
@@ -248,8 +248,8 @@ public:
                                       sensor_msgs::PointField::FLOAT32, "z", 1, sensor_msgs::PointField::FLOAT32,
                                       "intensity", 1, sensor_msgs::PointField::FLOAT32);
 
-    pub_imu_ = pnh_.advertise<sensor_msgs::Imu>("imu_", 5);
-    pub_mag_ = pnh_.advertise<sensor_msgs::MagneticField>("mag_", 5);
+    pub_imu_ = pnh_.advertise<sensor_msgs::Imu>("imu", 5);
+    pub_mag_ = pnh_.advertise<sensor_msgs::MagneticField>("mag", 5);
 
     enable_pc_ = enable_pc2_ = false;
     ros::SubscriberStatusCallback cbCon = boost::bind(&Hokuyo3dNode::cbSubscriber, this);
