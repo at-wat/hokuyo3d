@@ -275,7 +275,8 @@ private:
       }
       if (buf_.size() < Header.length)
         break;
-      const auto delay = boost::chrono::duration_cast<boost::chrono::microseconds>(boost::chrono::system_clock::now() - time);
+      const auto delay = boost::chrono::duration_cast<boost::chrono::microseconds>(
+          boost::chrono::system_clock::now() - time);
       time += duration * Header.length / length_total;
 
       size_t length = Header.length - Header.header_length;
