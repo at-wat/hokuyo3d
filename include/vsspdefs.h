@@ -129,7 +129,7 @@ struct AuxData
 class AuxFactorArray
 {
 public:
-  double operator[](AuxId id)
+  double operator[](AuxId id) const
   {
     return k_[static_cast<int>(id)];
   };
@@ -158,7 +158,7 @@ public:
   XYZI()
   {
   }
-  XYZI(double &v_sin, double &v_cos, double &h_sin, double &h_cos)
+  XYZI(const double &v_sin, const double &v_cos, const double &h_sin, const double &h_cos)
   {
     i = 0;
     r = 0;
@@ -166,7 +166,7 @@ public:
     y = v_cos * h_sin;
     z = v_sin;
   }
-  XYZI operator*(const DataRangeIntensity &data)
+  XYZI operator*(const DataRangeIntensity &data) const
   {
     XYZI ret = *this;
     double r = data.range_mm * 0.001;
@@ -177,7 +177,7 @@ public:
     ret.r = r;
     return ret;
   }
-  XYZI operator*(const DataRangeOnly &data)
+  XYZI operator*(const DataRangeOnly &data) const
   {
     XYZI ret = *this;
     double r = data.range_mm * 0.001;
@@ -203,6 +203,10 @@ public:
     lin_acc.x = lin_acc.y = lin_acc.z = 0.0;
     mag.x = mag.y = mag.z = 0.0;
     temp = 0.0;
+  }
+  double operator[](AuxId id) const
+  {
+    return operator[](id);
   }
   double &operator[](AuxId id)
   {
