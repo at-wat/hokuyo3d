@@ -233,10 +233,10 @@ private:
   };
   void onRead(const boost::system::error_code &error)
   {
-    auto timeRead = boost::chrono::system_clock::now();
+    auto time_read = boost::chrono::system_clock::now();
     auto time = time_read_last_;
-    auto duration = timeRead - time_read_last_;
-    auto lengthTotal = buf_.size();
+    auto duration = time_read - time_read_last_;
+    auto length_total = buf_.size();
     if (error == boost::asio::error::eof)
     {
       // Connection closed_
@@ -275,7 +275,7 @@ private:
       if (buf_.size() < Header.length)
         break;
       auto delay = boost::chrono::duration_cast<boost::chrono::microseconds>(boost::chrono::system_clock::now() - time);
-      time += duration * Header.length / lengthTotal;
+      time += duration * Header.length / length_total;
 
       size_t length = Header.length - Header.header_length;
       buf_.consume(Header.header_length);
@@ -435,7 +435,7 @@ private:
       buf_.consume(length);
     }
     receivePackets();
-    time_read_last_ = timeRead;
+    time_read_last_ = time_read;
     return;
   };
 };
