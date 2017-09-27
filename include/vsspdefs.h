@@ -244,15 +244,17 @@ static const double DEG = (M_PI / 180.0);
 // note: there is no way to get these values in communication
 //      with prototype edition of the HOKUYO 3D sensor
 static const AuxFactorArray AUX_FACTOR_DEFAULT =
-{
-  {
-    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-    1.0,                                   // Temperature [?]
-    0.6e-6, 0.6e-6, 0.6e-6,                // Magnetometer [T]
-    G / 8192.0, G / 8192.0, G / 8192.0,    // Accelerometer [m/ss]
-    DEG / 131.0, DEG / 131.0, DEG / 131.0  // Gyrometer [rad/s]
-  }
-};
+    {
+      {
+        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0,                                 // Temperature [?]
+        0.6e-6, 0.6e-6, 0.6e-6,              // Magnetometer [T]
+        G / 8192.0, G / 8192.0, G / 8192.0,  // Accelerometer [m/ss]
+        DEG / 65.5, DEG / 65.5, DEG / 65.5   // Gyrometer [rad/s]
+      }
+    };
 
 }  // namespace vssp
 
