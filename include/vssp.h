@@ -170,6 +170,18 @@ public:
     }
     return false;
   }
+  void spin()
+  {
+    io_service_.run();
+  }
+  void stop()
+  {
+    io_service_.stop();
+  }
+  boost::asio::io_service &getIoService()
+  {
+    return io_service_;
+  }
 
 private:
   void send(const std::string cmd)

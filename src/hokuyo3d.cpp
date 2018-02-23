@@ -29,8 +29,10 @@
 
 #include <boost/bind.hpp>
 #include <boost/chrono.hpp>
+#include <boost/thread.hpp>
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/asio.hpp>
 #include <string>
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud.h>
@@ -200,7 +202,10 @@ public:
       ROS_ERROR("Connection failed");
     }
   }
-  Hokuyo3dNode() : pnh_("~"), timestamp_base_(0)
+  Hokuyo3dNode()
+    : pnh_("~")
+    , timestamp_base_(0)
+    , timer_(io_, boost::posix_time::milliseconds(500))
   {
     pnh_.param("interlace", interlace_, 4);
     pnh_.param("ip", ip_, std::string("192.168.0.10"));
@@ -299,6 +304,35 @@ public:
     ROS_ERROR("Connection closed");
     return false;
   }
+  void cbTimer(const boost::system::error_code& error)
+  {
+    if (error)
+      return;
+
+    if (!ros::ok())
+    {
+      driver_.stop();
+    }
+    else
+    {
+      timer_.expires_at(
+          timer_.expires_at() + 
+          boost::posix_time::milliseconds(500));
+      timer_.async_wait(boost::bind(&Hokuyo3dNode::cbTimer, this, _1));
+    }
+  }
+  void spin()
+  {
+    timer_.async_wait(boost::bind(&Hokuyo3dNode::cbTimer, this, _1));
+    boost::thread thread(
+        boost::bind(&boost::asio::io_service::run, &io_));
+
+    ros::AsyncSpinner spinner(1);
+    spinner.start();
+    driver_.spin();
+    spinner.stop();
+    timer_.cancel();
+  }
   void ping()
   {
     driver_.requestPing();
@@ -323,6 +357,9 @@ protected:
 
   ros::Time time_ping_;
   ros::Time timestamp_base_;
+
+  boost::asio::io_service io_;
+  boost::asio::deadline_timer timer_;
 
   int field_;
   int frame_;
@@ -349,15 +386,7 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "hokuyo3d");
   Hokuyo3dNode node;
 
-  ros::Rate wait(200);
-
-  while (ros::ok())
-  {
-    if (!node.poll())
-      break;
-    ros::spinOnce();
-    wait.sleep();
-  }
+  node.spin();
 
   return 1;
 }
