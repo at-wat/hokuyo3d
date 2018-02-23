@@ -301,7 +301,7 @@ public:
     {
       return true;
     }
-    ROS_ERROR("Connection closed");
+    ROS_INFO("Connection closed");
     return false;
   }
   void cbTimer(const boost::system::error_code& error)
@@ -332,6 +332,7 @@ public:
     driver_.spin();
     spinner.stop();
     timer_.cancel();
+    ROS_INFO("Connection closed");
   }
   void ping()
   {
