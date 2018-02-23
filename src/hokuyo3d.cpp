@@ -316,7 +316,7 @@ public:
     else
     {
       timer_.expires_at(
-          timer_.expires_at() + 
+          timer_.expires_at() +
           boost::posix_time::milliseconds(500));
       timer_.async_wait(boost::bind(&Hokuyo3dNode::cbTimer, this, _1));
     }
