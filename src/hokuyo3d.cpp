@@ -126,7 +126,7 @@ public:
       field_ = RangeHeader.field;
       line_ = RangeHeader.line;
     }
-  };
+  }
   void cbError(const vssp::Header &Header, const std::string &message)
   {
     ROS_ERROR("%s", message.c_str());
@@ -180,7 +180,7 @@ public:
         mag_.header.stamp += ros::Duration(AuxHeader.data_ms * 0.001);
       }
     }
-  };
+  }
   void cbConnect(bool success)
   {
     if (success)
@@ -199,7 +199,7 @@ public:
     {
       ROS_ERROR("Connection failed");
     }
-  };
+  }
   Hokuyo3dNode() : pnh_("~"), timestamp_base_(0)
   {
     pnh_.param("interlace", interlace_, 4);
@@ -257,7 +257,7 @@ public:
     boost::lock_guard<boost::mutex> lock(connect_mutex_);
     pub_pc_ = pnh_.advertise<sensor_msgs::PointCloud>("hokuyo_cloud", 5, cb_con, cb_con);
     pub_pc2_ = pnh_.advertise<sensor_msgs::PointCloud2>("hokuyo_cloud2", 5, cb_con, cb_con);
-  };
+  }
   ~Hokuyo3dNode()
   {
     driver_.requestAuxData(false);
@@ -265,7 +265,7 @@ public:
     driver_.requestData(false, false);
     driver_.poll();
     ROS_INFO("Communication stoped");
-  };
+  }
   void cbSubscriber()
   {
     boost::lock_guard<boost::mutex> lock(connect_mutex_);
@@ -298,12 +298,12 @@ public:
     }
     ROS_ERROR("Connection closed");
     return false;
-  };
+  }
   void ping()
   {
     driver_.requestPing();
     time_ping_ = ros::Time::now();
-  };
+  }
 
 protected:
   ros::NodeHandle pnh_;

@@ -91,7 +91,7 @@ public:
   void setTimeout(const double to)
   {
     timeout_ = to;
-  };
+  }
   void connect(const char *ip, const unsigned int port, decltype(cb_connect_) cb)
   {
     cb_connect_ = cb;
@@ -100,39 +100,39 @@ public:
     timer_.async_wait(boost::bind(&VsspDriver::onTimeoutConnect, this, boost::asio::placeholders::error));
     socket_.async_connect(endpoint, boost::bind(&vssp::VsspDriver::onConnect, this, boost::asio::placeholders::error));
     time_read_last_ = boost::chrono::system_clock::now();
-  };
+  }
   void registerErrorCallback(decltype(cb_error_) cb)
   {
     cb_error_ = cb;
-  };
+  }
   void registerCallback(decltype(cb_point_) cb)
   {
     cb_point_ = cb;
-  };
+  }
   void registerAuxCallback(decltype(cb_aux_) cb)
   {
     cb_aux_ = cb;
-  };
+  }
   void registerPingCallback(decltype(cb_ping_) cb)
   {
     cb_ping_ = cb;
-  };
+  }
   void setInterlace(const int itl)
   {
     send((boost::format("SET:_itl=0,%02d\n") % itl).str());
-  };
+  }
   void requestVerticalTable()
   {
     send(std::string("GET:tblv\n"));
-  };
+  }
   void requestHorizontalTable()
   {
     send(std::string("GET:tblh\n"));
-  };
+  }
   void requestPing()
   {
     send(std::string("PNG\n"));
-  };
+  }
   void requestAuxData(const bool start = 1)
   {
     send((boost::format("DAT:ax=%d\n") % static_cast<int>(start)).str());
@@ -147,7 +147,7 @@ public:
     {
       send((boost::format("DAT:ro=%d\n") % static_cast<int>(start)).str());
     }
-  };
+  }
   void receivePackets()
   {
     timer_.cancel();
@@ -157,7 +157,7 @@ public:
     // In most case, callback function will be called for each VSSP line.
     boost::asio::async_read(socket_, buf_, boost::asio::transfer_at_least(4),
                             boost::bind(&VsspDriver::onRead, this, boost::asio::placeholders::error));
-  };
+  }
   bool poll()
   {
     if (!closed_)
@@ -169,7 +169,7 @@ public:
       closed_ = true;
     }
     return false;
-  };
+  }
 
 private:
   void send(const std::string cmd)
@@ -177,7 +177,7 @@ private:
     boost::shared_ptr<std::string> data(new std::string(cmd));
     boost::asio::async_write(socket_, boost::asio::buffer(*data),
                              boost::bind(&VsspDriver::onSend, this, boost::asio::placeholders::error, data));
-  };
+  }
   void onTimeoutConnect(const boost::system::error_code &error)
   {
     if (!error)
@@ -204,7 +204,7 @@ private:
       return;
     }
     cb_connect_(true);
-  };
+  }
   void onSend(const boost::system::error_code &error, boost::shared_ptr<std::string> data)
   {
     if (error)
@@ -212,7 +212,7 @@ private:
       closed_ = true;
       return;
     }
-  };
+  }
   template <class DATA_TYPE>
   void rangeToXYZ(const vssp::RangeHeader &RangeHeader, const vssp::RangeIndex &RangeIndex,
                   const boost::shared_array<const uint16_t> &index,
@@ -233,7 +233,7 @@ private:
       for (int e = index[s]; e < index[s + 1]; e++)
         points[i++] = dir * data[e];
     }
-  };
+  }
   void onRead(const boost::system::error_code &error)
   {
     const auto time_read = boost::chrono::system_clock::now();
@@ -443,7 +443,7 @@ private:
     receivePackets();
     time_read_last_ = time_read;
     return;
-  };
+  }
 };
 
 }  // namespace vssp
