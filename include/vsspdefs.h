@@ -132,7 +132,7 @@ public:
   double operator[](AuxId id) const
   {
     return k_[static_cast<int>(id)];
-  };
+  }
   double k_[AX_MASK_LAST + 1];
 };
 struct TableSincos
