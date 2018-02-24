@@ -57,13 +57,24 @@ private:
   bool closed_;
   AuxFactorArray aux_factor_;
 
-  boost::function<void(const vssp::Header &, const vssp::RangeHeader &, const vssp::RangeIndex &,
-                       const boost::shared_array<uint16_t> &, const boost::shared_array<vssp::XYZI> &,
-                       const boost::chrono::microseconds &delayRead)> cb_point_;
-  boost::function<void(const vssp::Header &, const vssp::AuxHeader &, const boost::shared_array<vssp::Aux> &,
-                       const boost::chrono::microseconds &delayRead)> cb_aux_;
-  boost::function<void(const vssp::Header &, const boost::chrono::microseconds &)> cb_ping_;
-  boost::function<void(const vssp::Header &, const std::string &)> cb_error_;
+  boost::function<void(
+      const vssp::Header &,
+      const vssp::RangeHeader &,
+      const vssp::RangeIndex &,
+      const boost::shared_array<uint16_t> &,
+      const boost::shared_array<vssp::XYZI> &,
+      const boost::chrono::microseconds &delayRead)> cb_point_;
+  boost::function<void(
+      const vssp::Header &,
+      const vssp::AuxHeader &,
+      const boost::shared_array<vssp::Aux> &,
+      const boost::chrono::microseconds &delayRead)> cb_aux_;
+  boost::function<void(
+      const vssp::Header &,
+      const boost::chrono::microseconds &)> cb_ping_;
+  boost::function<void(
+      const vssp::Header &,
+      const std::string &)> cb_error_;
   boost::function<void(bool)> cb_connect_;
   boost::shared_array<const double> tbl_h_;
   boost::shared_array<const TableSincos> tbl_v_;
@@ -222,18 +233,20 @@ private:
     }
   }
   template <class DATA_TYPE>
-  void rangeToXYZ(const vssp::RangeHeader &RangeHeader, const vssp::RangeIndex &RangeIndex,
-                  const boost::shared_array<const uint16_t> &index,
-                  const boost::shared_array<vssp::XYZI> &points)
+  void rangeToXYZ(
+      const vssp::RangeHeader &range_header,
+      const vssp::RangeIndex &range_index,
+      const boost::shared_array<const uint16_t> &index,
+      const boost::shared_array<vssp::XYZI> &points)
   {
     int i = 0;
 
-    const double h_head = RangeHeader.line_head_h_angle_ratio * 2.0 * M_PI / 65535.0;
-    const double h_tail = RangeHeader.line_tail_h_angle_ratio * 2.0 * M_PI / 65535.0;
+    const double h_head = range_header.line_head_h_angle_ratio * 2.0 * M_PI / 65535.0;
+    const double h_tail = range_header.line_tail_h_angle_ratio * 2.0 * M_PI / 65535.0;
     const DATA_TYPE *data = boost::asio::buffer_cast<const DATA_TYPE *>(buf_.data());
-    for (int s = 0; s < RangeIndex.nspots; s++)
+    for (int s = 0; s < range_index.nspots; s++)
     {
-      const double spot = s + RangeHeader.spot;
+      const double spot = s + range_header.spot;
       const double h_rad = h_head + (h_tail - h_head) * tbl_h_[spot];
       const double h_cos = cos(h_rad);
       const double h_sin = sin(h_rad);
@@ -268,8 +281,8 @@ private:
         break;
       }
       // Read packet Header
-      const vssp::Header Header = *boost::asio::buffer_cast<const vssp::Header *>(buf_.data());
-      if (Header.mark != vssp::VSSP_MARK)
+      const vssp::Header header = *boost::asio::buffer_cast<const vssp::Header *>(buf_.data());
+      if (header.mark != vssp::VSSP_MARK)
       {
         // Invalid packet
         // find VSSP mark
@@ -285,36 +298,36 @@ private:
         }
         break;
       }
-      if (buf_.size() < Header.length)
+      if (buf_.size() < header.length)
         break;
       const auto delay = boost::chrono::duration_cast<boost::chrono::microseconds>(
           boost::chrono::system_clock::now() - time);
-      time += duration * Header.length / length_total;
+      time += duration * header.length / length_total;
 
-      size_t length = Header.length - Header.header_length;
-      buf_.consume(Header.header_length);
+      size_t length = header.length - header.header_length;
+      buf_.consume(header.header_length);
 
       do
       {
-        switch (Header.type)
+        switch (header.type)
         {
           case TYPE_ERR:
           case TYPE_ER:
             // Error message
             {
               const std::string data(boost::asio::buffer_cast<const char *>(buf_.data()));
-              std::string message(data, 0, Header.length - Header.header_length - 1);
+              std::string message(data, 0, header.length - header.header_length - 1);
               if (!cb_error_.empty())
-                cb_error_(Header, message);
+                cb_error_(header, message);
             }
             break;
           default:
             break;
         }
-        if (Header.status != vssp::STATUS_OK)
+        if (header.status != vssp::STATUS_OK)
           break;
 
-        switch (Header.type)
+        switch (header.type)
         {
           case TYPE_GET:
             // Response to get command
@@ -338,7 +351,7 @@ private:
                   boost::shared_array<TableSincos> tbl_v(new TableSincos[cells.size()]);
                   for (auto &cell : cells)
                   {
-                    const double rad(std::strtol(cell.c_str(), NULL, 16) * 2.0 * M_PI / 65535);
+                    const double rad(std::strtol(cell.c_str(), nullptr, 16) * 2.0 * M_PI / 65535);
                     sincos(rad, &tbl_v[i].s, &tbl_v[i].c);
                     i++;
                   }
@@ -350,7 +363,7 @@ private:
                   boost::shared_array<double> tbl_h(new double[cells.size()]);
                   for (auto &cell : cells)
                   {
-                    tbl_h[i] = static_cast<double>(std::strtol(cell.c_str(), NULL, 16) / 65535);
+                    tbl_h[i] = static_cast<double>(std::strtol(cell.c_str(), nullptr, 16) / 65535);
                     i++;
                   }
                   tbl_h_ = tbl_h;
@@ -371,7 +384,7 @@ private:
           case TYPE_PNG:
             // Response to ping command
             if (!cb_ping_.empty())
-              cb_ping_(Header, delay);
+              cb_ping_(header, delay);
             break;
           case TYPE_RI:
           case TYPE_RO:
@@ -383,64 +396,64 @@ private:
             }
             {
               // Decode range data Header
-              const vssp::RangeHeader RangeHeader = *boost::asio::buffer_cast<const vssp::RangeHeader *>(buf_.data());
-              buf_.consume(RangeHeader.header_length);
-              length -= RangeHeader.header_length;
+              const vssp::RangeHeader range_header = *boost::asio::buffer_cast<const vssp::RangeHeader *>(buf_.data());
+              buf_.consume(range_header.header_length);
+              length -= range_header.header_length;
 
               // Decode range index Header
-              const vssp::RangeIndex RangeIndex = *boost::asio::buffer_cast<const vssp::RangeIndex *>(buf_.data());
-              size_t index_length = RangeIndex.index_length;
+              const vssp::RangeIndex range_index = *boost::asio::buffer_cast<const vssp::RangeIndex *>(buf_.data());
+              size_t index_length = range_index.index_length;
               buf_.consume(sizeof(vssp::RangeIndex));
               index_length -= sizeof(vssp::RangeIndex);
               length -= sizeof(vssp::RangeIndex);
 
               // Decode range index
-              boost::shared_array<uint16_t> index(new uint16_t[RangeIndex.nspots + 1]);
+              boost::shared_array<uint16_t> index(new uint16_t[range_index.nspots + 1]);
               std::memcpy(index.get(), boost::asio::buffer_cast<const vssp::RangeIndex *>(buf_.data()),
-                          sizeof(uint16_t) * (RangeIndex.nspots + 1));
+                          sizeof(uint16_t) * (range_index.nspots + 1));
               buf_.consume(index_length);
               length -= index_length;
 
               // Decode range data
-              boost::shared_array<vssp::XYZI> points(new vssp::XYZI[index[RangeIndex.nspots]]);
-              switch (Header.type)
+              boost::shared_array<vssp::XYZI> points(new vssp::XYZI[index[range_index.nspots]]);
+              switch (header.type)
               {
                 case TYPE_RI:
                   // Range and Intensity
-                  rangeToXYZ<vssp::DataRangeIntensity>(RangeHeader, RangeIndex, index, points);
+                  rangeToXYZ<vssp::DataRangeIntensity>(range_header, range_index, index, points);
                   break;
                 case TYPE_RO:
                   // Range
-                  rangeToXYZ<vssp::DataRangeOnly>(RangeHeader, RangeIndex, index, points);
+                  rangeToXYZ<vssp::DataRangeOnly>(range_header, range_index, index, points);
                   break;
               }
-              cb_point_(Header, RangeHeader, RangeIndex, index, points, delay);
+              cb_point_(header, range_header, range_index, index, points, delay);
             }
             break;
           case TYPE_AX:
             // Aux data
             {
               // Decode range data Header
-              const vssp::AuxHeader AuxHeader = *boost::asio::buffer_cast<const vssp::AuxHeader *>(buf_.data());
-              buf_.consume(AuxHeader.header_length);
-              length -= AuxHeader.header_length;
+              const vssp::AuxHeader aux_header = *boost::asio::buffer_cast<const vssp::AuxHeader *>(buf_.data());
+              buf_.consume(aux_header.header_length);
+              length -= aux_header.header_length;
 
               // Decode Aux data
-              boost::shared_array<vssp::Aux> auxs(new vssp::Aux[AuxHeader.data_count]);
-              for (int i = 0; i < AuxHeader.data_count; i++)
+              boost::shared_array<vssp::Aux> auxs(new vssp::Aux[aux_header.data_count]);
+              for (int i = 0; i < aux_header.data_count; i++)
               {
                 const vssp::AuxData *data = boost::asio::buffer_cast<const vssp::AuxData *>(buf_.data());
                 int offset = 0;
                 for (AuxId b = vssp::AX_MASK_LAST; b >= vssp::AX_MASK_FIRST; b = static_cast<AuxId>(b - 1))
                 {
-                  if (AuxHeader.data_bitfield & (1 << static_cast<int>(b)))
+                  if (aux_header.data_bitfield & (1 << static_cast<int>(b)))
                     auxs[i][b] = aux_factor_[b] * data[offset++].val;
                 }
                 buf_.consume(sizeof(int32_t) * offset);
                 length -= sizeof(int32_t) * offset;
               }
               if (!cb_aux_.empty())
-                cb_aux_(Header, AuxHeader, auxs, delay);
+                cb_aux_(header, aux_header, auxs, delay);
             }
             break;
           default:
