@@ -200,6 +200,7 @@ public:
     {
       ROS_INFO("Connection established");
       ping();
+      driver_.setAutoReset(auto_reset_);
       driver_.setInterlace(interlace_);
       driver_.requestHorizontalTable();
       driver_.requestVerticalTable();
@@ -225,6 +226,7 @@ public:
     pnh_.param("imu_frame_id", imu_frame_id_, frame_id_ + "_imu");
     pnh_.param("mag_frame_id", mag_frame_id_, frame_id_ + "_mag");
     pnh_.param("range_min", range_min_, 0.0);
+    pnh_.param("auto_reset", auto_reset_, false);
 
     std::string output_cycle;
     pnh_.param("output_cycle", output_cycle, std::string("field"));
@@ -391,6 +393,7 @@ protected:
   std::string frame_id_;
   std::string imu_frame_id_;
   std::string mag_frame_id_;
+  bool auto_reset_;
 };
 
 int main(int argc, char **argv)

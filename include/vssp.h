@@ -128,6 +128,13 @@ public:
   {
     cb_ping_ = cb;
   }
+  void setAutoReset(const bool enable)
+  {
+    if (enable)
+      send(std::string("SET:_ars=1\n"));
+    else
+      send(std::string("SET:_ars=0\n"));
+  }
   void setInterlace(const int itl)
   {
     send((boost::format("SET:_itl=0,%02d\n") % itl).str());
