@@ -160,15 +160,23 @@ public:
   }
   bool poll()
   {
-    if (!closed_)
-    {
-      boost::system::error_code ec;
-      io_service_.poll(ec);
-      if (!ec)
-        return true;
-      closed_ = true;
-    }
+    boost::system::error_code ec;
+    io_service_.poll(ec);
+    if (!ec)
+      return true;
     return false;
+  }
+  void spin()
+  {
+    io_service_.run();
+  }
+  void stop()
+  {
+    io_service_.stop();
+  }
+  boost::asio::io_service &getIoService()
+  {
+    return io_service_;
   }
 
 private:
@@ -183,7 +191,7 @@ private:
     if (!error)
     {
       closed_ = true;
-      socket_.cancel();
+      io_service_.stop();
     }
   }
   void onTimeout(const boost::system::error_code &error)
@@ -191,7 +199,7 @@ private:
     if (!error)
     {
       closed_ = true;
-      socket_.cancel();
+      io_service_.stop();
     }
   }
   void onConnect(const boost::system::error_code &error)
@@ -244,12 +252,14 @@ private:
     {
       // Connection closed_
       closed_ = true;
+      io_service_.stop();
       return;
     }
     else if (error)
     {
       // Connection error
       closed_ = true;
+      io_service_.stop();
     }
     while (true)
     {
