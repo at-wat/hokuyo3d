@@ -257,7 +257,6 @@ public:
 
     driver_.setTimeout(2.0);
     ROS_INFO("Connecting to %s", ip_.c_str());
-    driver_.connect(ip_.c_str(), port_, boost::bind(&Hokuyo3dNode::cbConnect, this, _1));
     driver_.registerCallback(boost::bind(&Hokuyo3dNode::cbPoint, this, _1, _2, _3, _4, _5, _6));
     driver_.registerAuxCallback(boost::bind(&Hokuyo3dNode::cbAux, this, _1, _2, _3, _4));
     driver_.registerPingCallback(boost::bind(&Hokuyo3dNode::cbPing, this, _1, _2));
@@ -287,6 +286,9 @@ public:
     boost::lock_guard<boost::mutex> lock(connect_mutex_);
     pub_pc_ = pnh_.advertise<sensor_msgs::PointCloud>("hokuyo_cloud", 5, cb_con, cb_con);
     pub_pc2_ = pnh_.advertise<sensor_msgs::PointCloud2>("hokuyo_cloud2", 5, cb_con, cb_con);
+
+    // Start communication with the sensor
+    driver_.connect(ip_.c_str(), port_, boost::bind(&Hokuyo3dNode::cbConnect, this, _1));
   }
   ~Hokuyo3dNode()
   {
