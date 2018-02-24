@@ -472,11 +472,13 @@ private:
               {
               case TYPE_RI:
                 // Range and Intensity
-                success = rangeToXYZ<vssp::DataRangeIntensity>(range_header, range_header_v2r1, range_index, index, points);
+                success = rangeToXYZ<vssp::DataRangeIntensity>(
+                    range_header, range_header_v2r1, range_index, index, points);
                 break;
               case TYPE_RO:
                 // Range
-                success = rangeToXYZ<vssp::DataRangeOnly>(range_header, range_header_v2r1, range_index, index, points);
+                success = rangeToXYZ<vssp::DataRangeOnly>(
+                    range_header, range_header_v2r1, range_index, index, points);
                 break;
               default:
                 success = false;
