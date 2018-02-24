@@ -258,19 +258,19 @@ private:
   template <class DATA_TYPE>
   bool rangeToXYZ(
       const vssp::RangeHeader &range_header,
-      const vssp::RangeHeaderV2R1 &RangeHeaderV2R1,
+      const vssp::RangeHeaderV2R1 &range_header_v2r1,
       const vssp::RangeIndex &range_index,
       const boost::shared_array<const uint16_t> &index,
       const boost::shared_array<vssp::XYZI> &points)
   {
-    if (tbl_vn_loaded_.size() != RangeHeaderV2R1.vertical_interlace)
+    if (tbl_vn_loaded_.size() != range_header_v2r1.vertical_interlace)
       return false;
 
     int i = 0;
     const double h_head = range_header.line_head_h_angle_ratio * 2.0 * M_PI / 65535.0;
     const double h_tail = range_header.line_tail_h_angle_ratio * 2.0 * M_PI / 65535.0;
     const DATA_TYPE *data = boost::asio::buffer_cast<const DATA_TYPE *>(buf_.data());
-    const int tv = RangeHeaderV2R1.vertical_field;
+    const int tv = range_header_v2r1.vertical_field;
     for (int s = 0; s < range_index.nspots; s++)
     {
       const double spot = s + range_header.spot;
@@ -442,10 +442,10 @@ private:
             {
               // Decode range data Header
               const vssp::RangeHeader range_header = *boost::asio::buffer_cast<const vssp::RangeHeader *>(buf_.data());
-              vssp::RangeHeaderV2R1 RangeHeaderV2R1 = RANGE_HEADER_V2R1_DEFAULT;
+              vssp::RangeHeaderV2R1 range_header_v2r1 = RANGE_HEADER_V2R1_DEFAULT;
               if (range_header.header_length >= 24)
               {
-                RangeHeaderV2R1 = *boost::asio::buffer_cast<const vssp::RangeHeaderV2R1 *>(
+                range_header_v2r1 = *boost::asio::buffer_cast<const vssp::RangeHeaderV2R1 *>(
                     buf_.data() + sizeof(vssp::RangeHeader));
               }
               buf_.consume(range_header.header_length);
@@ -472,11 +472,11 @@ private:
               {
               case TYPE_RI:
                 // Range and Intensity
-                success = rangeToXYZ<vssp::DataRangeIntensity>(range_header, RangeHeaderV2R1, range_index, index, points);
+                success = rangeToXYZ<vssp::DataRangeIntensity>(range_header, range_header_v2r1, range_index, index, points);
                 break;
               case TYPE_RO:
                 // Range
-                success = rangeToXYZ<vssp::DataRangeOnly>(range_header, RangeHeaderV2R1, range_index, index, points);
+                success = rangeToXYZ<vssp::DataRangeOnly>(range_header, range_header_v2r1, range_index, index, points);
                 break;
               default:
                 success = false;
