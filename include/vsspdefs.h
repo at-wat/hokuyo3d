@@ -98,6 +98,15 @@ struct RangeHeader
   uint16_t line;
   uint16_t spot;
 };
+struct RangeHeaderV2R1
+{
+  uint8_t vertical_field;
+  uint8_t vertical_interlace;
+};
+const RangeHeaderV2R1 RANGE_HEADER_V2R1_DEFAULT =
+    {
+      0, 1
+    };
 struct RangeIndex
 {
   uint16_t index_length;

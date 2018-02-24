@@ -201,9 +201,10 @@ public:
       ROS_INFO("Connection established");
       ping();
       driver_.setAutoReset(auto_reset_);
-      driver_.setInterlace(interlace_);
+      driver_.setHorizontalInterlace(horizontal_interlace_);
       driver_.requestHorizontalTable();
-      driver_.requestVerticalTable();
+      driver_.setVerticalInterlace(vertical_interlace_);
+      driver_.requestVerticalTable(vertical_interlace_);
       driver_.requestData(true, true);
       driver_.requestAuxData();
       driver_.receivePackets();
@@ -219,7 +220,16 @@ public:
     , timestamp_base_(0)
     , timer_(io_, boost::posix_time::milliseconds(500))
   {
-    pnh_.param("interlace", interlace_, 4);
+    if (pnh_.hasParam("horizontal_interlace") || !pnh_.hasParam("interlace"))
+    {
+      pnh_.param("horizontal_interlace", horizontal_interlace_, 4);
+    }
+    else if (pnh_.hasParam("interlace"))
+    {
+      ROS_WARN("'interlace' parameter is deprecated. Use horizontal_interlace instead.");
+      pnh_.param("interlace", horizontal_interlace_, 4);
+    }
+    pnh_.param("vertical_interlace", vertical_interlace_, 1);
     pnh_.param("ip", ip_, std::string("192.168.0.10"));
     pnh_.param("port", port_, 10940);
     pnh_.param("frame_id", frame_id_, std::string("hokuyo3d"));
@@ -388,7 +398,8 @@ protected:
   PublishCycle cycle_;
   std::string ip_;
   int port_;
-  int interlace_;
+  int horizontal_interlace_;
+  int vertical_interlace_;
   double range_min_;
   std::string frame_id_;
   std::string imu_frame_id_;

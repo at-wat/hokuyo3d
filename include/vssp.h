@@ -77,9 +77,10 @@ private:
       const std::string &)> cb_error_;
   boost::function<void(bool)> cb_connect_;
   boost::shared_array<const double> tbl_h_;
-  boost::shared_array<const TableSincos> tbl_v_;
+  std::vector<boost::shared_array<const TableSincos>> tbl_v_;
   bool tbl_h_loaded_;
   bool tbl_v_loaded_;
+  std::vector<bool> tbl_vn_loaded_;
   double timeout_;
 
   boost::chrono::time_point<boost::chrono::system_clock> time_read_last_;
@@ -135,13 +136,35 @@ public:
     else
       send(std::string("SET:_ars=0\n"));
   }
+  [[deprecated("use setHorizontalInterlace() instead of setInterlace()")]]
   void setInterlace(const int itl)
+  {
+    setHorizontalInterlace(itl);
+  }
+  void setHorizontalInterlace(const int itl)
   {
     send((boost::format("SET:_itl=0,%02d\n") % itl).str());
   }
-  void requestVerticalTable()
+  void setVerticalInterlace(const int itl)
   {
-    send(std::string("GET:tblv\n"));
+    send((boost::format("SET:_itv=0,%02d\n") % itl).str());
+  }
+  void requestVerticalTable(const int itl = 1)
+  {
+    tbl_v_.resize(itl);
+    tbl_vn_loaded_.resize(itl);
+    if (itl == 1)
+    {
+      send(std::string("GET:tblv\n"));
+    }
+    else
+    {
+      for (int i = 0; i < itl; ++i)
+      {
+        send((boost::format("GET:tv%02d\n") % i).str());
+        tbl_vn_loaded_[i] = false;
+      }
+    }
   }
   void requestHorizontalTable()
   {
@@ -240,27 +263,32 @@ private:
     }
   }
   template <class DATA_TYPE>
-  void rangeToXYZ(
+  bool rangeToXYZ(
       const vssp::RangeHeader &range_header,
+      const vssp::RangeHeaderV2R1 &range_header_v2r1,
       const vssp::RangeIndex &range_index,
       const boost::shared_array<const uint16_t> &index,
       const boost::shared_array<vssp::XYZI> &points)
   {
-    int i = 0;
+    if (tbl_vn_loaded_.size() != range_header_v2r1.vertical_interlace)
+      return false;
 
+    int i = 0;
     const double h_head = range_header.line_head_h_angle_ratio * 2.0 * M_PI / 65535.0;
     const double h_tail = range_header.line_tail_h_angle_ratio * 2.0 * M_PI / 65535.0;
     const DATA_TYPE *data = boost::asio::buffer_cast<const DATA_TYPE *>(buf_.data());
+    const int tv = range_header_v2r1.vertical_field;
     for (int s = 0; s < range_index.nspots; s++)
     {
       const double spot = s + range_header.spot;
       const double h_rad = h_head + (h_tail - h_head) * tbl_h_[spot];
       const double h_cos = cos(h_rad);
       const double h_sin = sin(h_rad);
-      const vssp::XYZI dir(tbl_v_[spot].s, tbl_v_[spot].c, h_sin, h_cos);
+      const vssp::XYZI dir(tbl_v_[tv][spot].s, tbl_v_[tv][spot].c, h_sin, h_cos);
       for (int e = index[s]; e < index[s + 1]; e++)
         points[i++] = dir * data[e];
     }
+    return true;
   }
   void onRead(const boost::system::error_code &error)
   {
@@ -345,7 +373,8 @@ private:
               if (lines.size() == 0)
                 break;
 
-              if (lines[0].compare(0, 7, "GET:tbl") == 0)
+              if (lines[0].compare(0, 7, "GET:tbl") == 0 ||
+                  lines[0].compare(0, 6, "GET:tv") == 0)
               {
                 if (lines.size() < 2)
                   break;
@@ -353,8 +382,16 @@ private:
                 boost::algorithm::split(cells, lines[1], boost::algorithm::is_any_of(","));
                 int i = 0;
 
-                if (lines[0].compare("GET:tblv") == 0)
+                if (lines[0].compare("GET:tblv") == 0 ||
+                    lines[0].compare(0, 6, "GET:tv") == 0)
                 {
+                  int tv = 0;
+                  if (lines[0].compare(0, 6, "GET:tv") == 0)
+                    tv = std::stoi(lines[0].substr(6));
+
+                  if (tv >= static_cast<int>(tbl_v_.size()))
+                    break;
+
                   boost::shared_array<TableSincos> tbl_v(new TableSincos[cells.size()]);
                   for (auto &cell : cells)
                   {
@@ -362,8 +399,16 @@ private:
                     sincos(rad, &tbl_v[i].s, &tbl_v[i].c);
                     i++;
                   }
-                  tbl_v_ = tbl_v;
-                  tbl_v_loaded_ = true;
+                  tbl_v_[tv] = tbl_v;
+                  tbl_vn_loaded_[tv] = true;
+
+                  bool load_finished = true;
+                  for (auto loaded : tbl_vn_loaded_)
+                  {
+                    if (!loaded)
+                      load_finished = false;
+                  }
+                  tbl_v_loaded_ = load_finished;
                 }
                 else if (lines[0].compare("GET:tblh") == 0)
                 {
@@ -404,6 +449,12 @@ private:
             {
               // Decode range data Header
               const vssp::RangeHeader range_header = *boost::asio::buffer_cast<const vssp::RangeHeader *>(buf_.data());
+              vssp::RangeHeaderV2R1 range_header_v2r1 = RANGE_HEADER_V2R1_DEFAULT;
+              if (range_header.header_length >= 24)
+              {
+                range_header_v2r1 = *boost::asio::buffer_cast<const vssp::RangeHeaderV2R1 *>(
+                    buf_.data() + sizeof(vssp::RangeHeader));
+              }
               buf_.consume(range_header.header_length);
               length -= range_header.header_length;
 
@@ -423,17 +474,25 @@ private:
 
               // Decode range data
               boost::shared_array<vssp::XYZI> points(new vssp::XYZI[index[range_index.nspots]]);
+              bool success;
               switch (header.type)
               {
-                case TYPE_RI:
-                  // Range and Intensity
-                  rangeToXYZ<vssp::DataRangeIntensity>(range_header, range_index, index, points);
-                  break;
-                case TYPE_RO:
-                  // Range
-                  rangeToXYZ<vssp::DataRangeOnly>(range_header, range_index, index, points);
-                  break;
+              case TYPE_RI:
+                // Range and Intensity
+                success = rangeToXYZ<vssp::DataRangeIntensity>(
+                    range_header, range_header_v2r1, range_index, index, points);
+                break;
+              case TYPE_RO:
+                // Range
+                success = rangeToXYZ<vssp::DataRangeOnly>(
+                    range_header, range_header_v2r1, range_index, index, points);
+                break;
+              default:
+                success = false;
+                break;
               }
+              if (!success)
+                break;
               cb_point_(header, range_header, range_index, index, points, delay);
             }
             break;
