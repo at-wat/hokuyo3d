@@ -47,9 +47,13 @@
 class Hokuyo3dNode
 {
 public:
-  void cbPoint(const vssp::Header &Header, const vssp::RangeHeader &RangeHeader, const vssp::RangeIndex &RangeIndex,
-               const boost::shared_array<uint16_t> &index, const boost::shared_array<vssp::XYZI> &points,
-               const boost::chrono::microseconds &delayRead)
+  void cbPoint(
+      const vssp::Header &header,
+      const vssp::RangeHeader &range_header,
+      const vssp::RangeIndex &range_index,
+      const boost::shared_array<uint16_t> &index,
+      const boost::shared_array<vssp::XYZI> &points,
+      const boost::chrono::microseconds &delay_read)
   {
     if (timestamp_base_ == ros::Time(0))
       return;
@@ -60,10 +64,10 @@ public:
       {
         // Start packing PointCloud message
         cloud_.header.frame_id = frame_id_;
-        cloud_.header.stamp = timestamp_base_ + ros::Duration(RangeHeader.line_head_timestamp_ms * 0.001);
+        cloud_.header.stamp = timestamp_base_ + ros::Duration(range_header.line_head_timestamp_ms * 0.001);
       }
       // Pack PointCloud message
-      for (int i = 0; i < index[RangeIndex.nspots]; i++)
+      for (int i = 0; i < index[range_index.nspots]; i++)
       {
         if (points[i].r < range_min_)
         {
@@ -83,16 +87,16 @@ public:
       {
         // Start packing PointCloud2 message
         cloud2_.header.frame_id = frame_id_;
-        cloud2_.header.stamp = timestamp_base_ + ros::Duration(RangeHeader.line_head_timestamp_ms * 0.001);
+        cloud2_.header.stamp = timestamp_base_ + ros::Duration(range_header.line_head_timestamp_ms * 0.001);
         cloud2_.row_step = 0;
         cloud2_.width = 0;
       }
       // Pack PointCloud2 message
-      cloud2_.data.resize((cloud2_.width + index[RangeIndex.nspots]) * cloud2_.point_step);
+      cloud2_.data.resize((cloud2_.width + index[range_index.nspots]) * cloud2_.point_step);
 
       float *data = reinterpret_cast<float *>(&cloud2_.data[0]);
       data += cloud2_.width * cloud2_.point_step / sizeof(float);
-      for (int i = 0; i < index[RangeIndex.nspots]; i++)
+      for (int i = 0; i < index[range_index.nspots]; i++)
       {
         if (points[i].r < range_min_)
         {
@@ -107,8 +111,8 @@ public:
       cloud2_.row_step = cloud2_.width * cloud2_.point_step;
     }
     // Publish points
-    if ((cycle_ == CYCLE_FIELD && (RangeHeader.field != field_ || RangeHeader.frame != frame_)) ||
-        (cycle_ == CYCLE_FRAME && (RangeHeader.frame != frame_)) || (cycle_ == CYCLE_LINE))
+    if ((cycle_ == CYCLE_FIELD && (range_header.field != field_ || range_header.frame != frame_)) ||
+        (cycle_ == CYCLE_FRAME && (range_header.frame != frame_)) || (cycle_ == CYCLE_LINE))
     {
       if (enable_pc_)
       {
@@ -122,41 +126,48 @@ public:
         pub_pc2_.publish(cloud2_);
         cloud2_.data.clear();
       }
-      if (RangeHeader.frame != frame_)
+      if (range_header.frame != frame_)
         ping();
-      frame_ = RangeHeader.frame;
-      field_ = RangeHeader.field;
-      line_ = RangeHeader.line;
+      frame_ = range_header.frame;
+      field_ = range_header.field;
+      line_ = range_header.line;
     }
   }
-  void cbError(const vssp::Header &Header, const std::string &message)
+  void cbError(
+      const vssp::Header &header,
+      const std::string &message)
   {
     ROS_ERROR("%s", message.c_str());
   }
-  void cbPing(const vssp::Header &Header, const boost::chrono::microseconds &delayRead)
+  void cbPing(
+      const vssp::Header &header,
+      const boost::chrono::microseconds &delay_read)
   {
-    ros::Time now = ros::Time::now() - ros::Duration(delayRead.count() * 0.001 * 0.001);
+    ros::Time now = ros::Time::now() - ros::Duration(delay_read.count() * 0.001 * 0.001);
     ros::Duration delay =
-        ((now - time_ping_) - ros::Duration(Header.send_time_ms * 0.001 - Header.received_time_ms * 0.001)) * 0.5;
-    ros::Time base = time_ping_ + delay - ros::Duration(Header.received_time_ms * 0.001);
+        ((now - time_ping_) - ros::Duration(header.send_time_ms * 0.001 - header.received_time_ms * 0.001)) * 0.5;
+    ros::Time base = time_ping_ + delay - ros::Duration(header.received_time_ms * 0.001);
     if (timestamp_base_ == ros::Time(0))
       timestamp_base_ = base;
     else
       timestamp_base_ += (base - timestamp_base_) * 0.01;
   }
-  void cbAux(const vssp::Header &Header, const vssp::AuxHeader &AuxHeader, const boost::shared_array<vssp::Aux> &auxs,
-             const boost::chrono::microseconds &delayRead)
+  void cbAux(
+      const vssp::Header &header,
+      const vssp::AuxHeader &aux_header,
+      const boost::shared_array<vssp::Aux> &auxs,
+      const boost::chrono::microseconds &delay_read)
   {
     if (timestamp_base_ == ros::Time(0))
       return;
-    ros::Time stamp = timestamp_base_ + ros::Duration(AuxHeader.timestamp_ms * 0.001);
+    ros::Time stamp = timestamp_base_ + ros::Duration(aux_header.timestamp_ms * 0.001);
 
-    if ((AuxHeader.data_bitfield & (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC)) ==
+    if ((aux_header.data_bitfield & (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC)) ==
         (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC))
     {
       imu_.header.frame_id = imu_frame_id_;
       imu_.header.stamp = stamp;
-      for (int i = 0; i < AuxHeader.data_count; i++)
+      for (int i = 0; i < aux_header.data_count; i++)
       {
         imu_.orientation_covariance[0] = -1.0;
         imu_.angular_velocity.x = auxs[i].ang_vel.x;
@@ -166,20 +177,20 @@ public:
         imu_.linear_acceleration.y = auxs[i].lin_acc.y;
         imu_.linear_acceleration.z = auxs[i].lin_acc.z;
         pub_imu_.publish(imu_);
-        imu_.header.stamp += ros::Duration(AuxHeader.data_ms * 0.001);
+        imu_.header.stamp += ros::Duration(aux_header.data_ms * 0.001);
       }
     }
-    if ((AuxHeader.data_bitfield & vssp::AX_MASK_MAG) == vssp::AX_MASK_MAG)
+    if ((aux_header.data_bitfield & vssp::AX_MASK_MAG) == vssp::AX_MASK_MAG)
     {
       mag_.header.frame_id = mag_frame_id_;
       mag_.header.stamp = stamp;
-      for (int i = 0; i < AuxHeader.data_count; i++)
+      for (int i = 0; i < aux_header.data_count; i++)
       {
         mag_.magnetic_field.x = auxs[i].mag.x;
         mag_.magnetic_field.y = auxs[i].mag.y;
         mag_.magnetic_field.z = auxs[i].mag.z;
         pub_mag_.publish(mag_);
-        mag_.header.stamp += ros::Duration(AuxHeader.data_ms * 0.001);
+        mag_.header.stamp += ros::Duration(aux_header.data_ms * 0.001);
       }
     }
   }
