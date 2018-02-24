@@ -129,6 +129,13 @@ public:
   {
     cb_ping_ = cb;
   }
+  void setAutoReset(const bool enable)
+  {
+    if (enable)
+      send(std::string("SET:_ars=1\n"));
+    else
+      send(std::string("SET:_ars=0\n"));
+  }
   [[deprecated("use setHorizontalInterlace() instead of setInterlace()")]]
   void setInterlace(const int itl)
   {
