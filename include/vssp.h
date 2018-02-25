@@ -380,7 +380,6 @@ private:
                   break;
                 std::vector<std::string> cells;
                 boost::algorithm::split(cells, lines[1], boost::algorithm::is_any_of(","));
-                int i = 0;
 
                 if (lines[0].compare("GET:tblv") == 0 ||
                     lines[0].compare(0, 6, "GET:tv") == 0)
@@ -393,9 +392,10 @@ private:
                     break;
 
                   boost::shared_array<TableSincos> tbl_v(new TableSincos[cells.size()]);
+                  int i = 0;
                   for (auto &cell : cells)
                   {
-                    const double rad(std::strtol(cell.c_str(), nullptr, 16) * 2.0 * M_PI / 65535);
+                    const double rad(std::strtol(cell.c_str(), nullptr, 16) * 2.0 * M_PI / 65535.0);
                     sincos(rad, &tbl_v[i].s, &tbl_v[i].c);
                     i++;
                   }
@@ -413,9 +413,10 @@ private:
                 else if (lines[0].compare("GET:tblh") == 0)
                 {
                   boost::shared_array<double> tbl_h(new double[cells.size()]);
+                  int i = 0;
                   for (auto &cell : cells)
                   {
-                    tbl_h[i] = static_cast<double>(std::strtol(cell.c_str(), nullptr, 16) / 65535);
+                    tbl_h[i] = std::strtol(cell.c_str(), nullptr, 16) / 65535.0;
                     i++;
                   }
                   tbl_h_ = tbl_h;
