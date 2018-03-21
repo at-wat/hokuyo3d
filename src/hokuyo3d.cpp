@@ -180,6 +180,8 @@ public:
       timestamp_base_ = sorted_timstamp_base[sorted_timstamp_base.size() / 2];
     else
       timestamp_base_ += (sorted_timstamp_base[sorted_timstamp_base.size() / 2] - timestamp_base_) * 0.1;
+
+    ROS_DEBUG("timestamp_base: %lf", timestamp_base_.toSec());
   }
   void cbAux(
       const vssp::Header &header,
