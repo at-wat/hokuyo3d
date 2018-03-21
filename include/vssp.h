@@ -63,18 +63,19 @@ private:
       const vssp::RangeIndex &,
       const boost::shared_array<uint16_t> &,
       const boost::shared_array<vssp::XYZI> &,
-      const boost::chrono::microseconds &delayRead)> cb_point_;
+      const boost::posix_time::ptime &)> cb_point_;
   boost::function<void(
       const vssp::Header &,
       const vssp::AuxHeader &,
       const boost::shared_array<vssp::Aux> &,
-      const boost::chrono::microseconds &delayRead)> cb_aux_;
+      const boost::posix_time::ptime &)> cb_aux_;
   boost::function<void(
       const vssp::Header &,
-      const boost::chrono::microseconds &)> cb_ping_;
+      const boost::posix_time::ptime &)> cb_ping_;
   boost::function<void(
       const vssp::Header &,
-      const std::string &)> cb_error_;
+      const std::string &,
+      const boost::posix_time::ptime &)> cb_error_;
   boost::function<void(bool)> cb_connect_;
   boost::shared_array<const double> tbl_h_;
   std::vector<boost::shared_array<const TableSincos>> tbl_v_;
@@ -83,7 +84,6 @@ private:
   std::vector<bool> tbl_vn_loaded_;
   double timeout_;
 
-  boost::chrono::time_point<boost::chrono::system_clock> time_read_last_;
   boost::asio::streambuf buf_;
 
 public:
@@ -111,7 +111,6 @@ public:
     timer_.expires_from_now(boost::posix_time::seconds(timeout_));
     timer_.async_wait(boost::bind(&VsspDriver::onTimeoutConnect, this, boost::asio::placeholders::error));
     socket_.async_connect(endpoint, boost::bind(&vssp::VsspDriver::onConnect, this, boost::asio::placeholders::error));
-    time_read_last_ = boost::chrono::system_clock::now();
   }
   void registerErrorCallback(decltype(cb_error_) cb)
   {
@@ -292,9 +291,7 @@ private:
   }
   void onRead(const boost::system::error_code &error)
   {
-    const auto time_read = boost::chrono::system_clock::now();
-    auto time = time_read_last_;
-    const auto duration = time_read - time_read_last_;
+    const auto time_read = boost::posix_time::microsec_clock::universal_time();
     const auto length_total = buf_.size();
     if (error == boost::asio::error::eof)
     {
@@ -335,9 +332,6 @@ private:
       }
       if (buf_.size() < header.length)
         break;
-      const auto delay = boost::chrono::duration_cast<boost::chrono::microseconds>(
-          boost::chrono::system_clock::now() - time);
-      time += duration * header.length / length_total;
 
       size_t length = header.length - header.header_length;
       buf_.consume(header.header_length);
@@ -352,8 +346,8 @@ private:
             {
               const std::string data(boost::asio::buffer_cast<const char *>(buf_.data()));
               std::string message(data, 0, header.length - header.header_length - 1);
-              if (!cb_error_.empty())
-                cb_error_(header, message);
+              if (cb_error_)
+                cb_error_(header, message, time_read);
             }
             break;
           default:
@@ -436,13 +430,13 @@ private:
             break;
           case TYPE_PNG:
             // Response to ping command
-            if (!cb_ping_.empty())
-              cb_ping_(header, delay);
+            if (cb_ping_)
+              cb_ping_(header, time_read);
             break;
           case TYPE_RI:
           case TYPE_RO:
             // Range data
-            if (!tbl_h_loaded_ || !tbl_v_loaded_ || cb_point_.empty())
+            if (!tbl_h_loaded_ || !tbl_v_loaded_ || !cb_point_)
             {
               // Something wrong
               break;
@@ -494,7 +488,7 @@ private:
               }
               if (!success)
                 break;
-              cb_point_(header, range_header, range_index, index, points, delay);
+              cb_point_(header, range_header, range_index, index, points, time_read);
             }
             break;
           case TYPE_AX:
@@ -519,8 +513,8 @@ private:
                 buf_.consume(sizeof(int32_t) * offset);
                 length -= sizeof(int32_t) * offset;
               }
-              if (!cb_aux_.empty())
-                cb_aux_(header, aux_header, auxs, delay);
+              if (cb_aux_)
+                cb_aux_(header, aux_header, auxs, time_read);
             }
             break;
           default:
@@ -531,7 +525,6 @@ private:
       buf_.consume(length);
     }
     receivePackets();
-    time_read_last_ = time_read;
     return;
   }
 };

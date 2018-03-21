@@ -53,7 +53,7 @@ public:
       const vssp::RangeIndex &range_index,
       const boost::shared_array<uint16_t> &index,
       const boost::shared_array<vssp::XYZI> &points,
-      const boost::chrono::microseconds &delay_read)
+      const boost::posix_time::ptime &time_read)
   {
     if (timestamp_base_ == ros::Time(0))
       return;
@@ -135,18 +135,19 @@ public:
   }
   void cbError(
       const vssp::Header &header,
-      const std::string &message)
+      const std::string &message,
+      const boost::posix_time::ptime &time_read)
   {
     ROS_ERROR("%s", message.c_str());
   }
   void cbPing(
       const vssp::Header &header,
-      const boost::chrono::microseconds &delay_read)
+      const boost::posix_time::ptime &time_read)
   {
-    ros::Time now = ros::Time::now() - ros::Duration(delay_read.count() * 0.001 * 0.001);
-    ros::Duration delay =
+    const ros::Time now = ros::Time::fromBoost(time_read);
+    const ros::Duration delay =
         ((now - time_ping_) - ros::Duration(header.send_time_ms * 0.001 - header.received_time_ms * 0.001)) * 0.5;
-    ros::Time base = time_ping_ + delay - ros::Duration(header.received_time_ms * 0.001);
+    const ros::Time base = time_ping_ + delay - ros::Duration(header.received_time_ms * 0.001);
     if (timestamp_base_ == ros::Time(0))
       timestamp_base_ = base;
     else
@@ -156,7 +157,7 @@ public:
       const vssp::Header &header,
       const vssp::AuxHeader &aux_header,
       const boost::shared_array<vssp::Aux> &auxs,
-      const boost::chrono::microseconds &delay_read)
+      const boost::posix_time::ptime &time_read)
   {
     if (timestamp_base_ == ros::Time(0))
       return;
@@ -260,7 +261,7 @@ public:
     driver_.registerCallback(boost::bind(&Hokuyo3dNode::cbPoint, this, _1, _2, _3, _4, _5, _6));
     driver_.registerAuxCallback(boost::bind(&Hokuyo3dNode::cbAux, this, _1, _2, _3, _4));
     driver_.registerPingCallback(boost::bind(&Hokuyo3dNode::cbPing, this, _1, _2));
-    driver_.registerErrorCallback(boost::bind(&Hokuyo3dNode::cbError, this, _1, _2));
+    driver_.registerErrorCallback(boost::bind(&Hokuyo3dNode::cbError, this, _1, _2, _3));
     field_ = 0;
     frame_ = 0;
     line_ = 0;
