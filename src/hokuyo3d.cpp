@@ -151,7 +151,7 @@ public:
     if (timestamp_base_ == ros::Time(0))
       timestamp_base_ = base;
     else
-      timestamp_base_ += (base - timestamp_base_) * 0.01;
+      timestamp_base_ += (base - timestamp_base_) * 0.1;
   }
   void cbAux(
       const vssp::Header &header,
