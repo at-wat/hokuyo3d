@@ -120,9 +120,9 @@ public:
     {
       if (enable_pc_)
       {
-        if (cloud_.header.stamp < cloud_stamp_last_)
+        if (cloud_.header.stamp < cloud_stamp_last_ && !allow_jump_back_)
         {
-          ROS_ERROR("Dropping timestamp jump backed cloud");
+          ROS_INFO("Dropping timestamp jump backed cloud");
         }
         else
         {
@@ -135,9 +135,9 @@ public:
       if (enable_pc2_)
       {
         cloud2_.data.resize(cloud2_.width * cloud2_.point_step);
-        if (cloud2_.header.stamp < cloud_stamp_last_)
+        if (cloud2_.header.stamp < cloud_stamp_last_ && !allow_jump_back_)
         {
-          ROS_ERROR("Dropping timestamp jump backed cloud2");
+          ROS_INFO("Dropping timestamp jump backed cloud2");
         }
         else
         {
@@ -207,9 +207,9 @@ public:
         imu_.linear_acceleration.x = auxs[i].lin_acc.x;
         imu_.linear_acceleration.y = auxs[i].lin_acc.y;
         imu_.linear_acceleration.z = auxs[i].lin_acc.z;
-        if (imu_stamp_last_ > imu_.header.stamp)
+        if (imu_stamp_last_ > imu_.header.stamp && !allow_jump_back_)
         {
-          ROS_ERROR("Dropping timestamp jump backed imu");
+          ROS_INFO("Dropping timestamp jump backed imu");
         }
         else
         {
@@ -228,9 +228,9 @@ public:
         mag_.magnetic_field.x = auxs[i].mag.x;
         mag_.magnetic_field.y = auxs[i].mag.y;
         mag_.magnetic_field.z = auxs[i].mag.z;
-        if (mag_stamp_last_ > imu_.header.stamp)
+        if (mag_stamp_last_ > imu_.header.stamp && !allow_jump_back_)
         {
-          ROS_ERROR("Dropping timestamp jump backed mag");
+          ROS_INFO("Dropping timestamp jump backed mag");
         }
         else
         {
@@ -286,6 +286,8 @@ public:
     pnh_.param("range_min", range_min_, 0.0);
     set_auto_reset_ = pnh_.hasParam("auto_reset");
     pnh_.param("auto_reset", auto_reset_, false);
+
+    pnh_.param("allow_jump_back", allow_jump_back_, false);
 
     std::string output_cycle;
     pnh_.param("output_cycle", output_cycle, std::string("field"));
@@ -428,6 +430,7 @@ protected:
 
   bool enable_pc_;
   bool enable_pc2_;
+  bool allow_jump_back_;
   boost::mutex connect_mutex_;
 
   ros::Time time_ping_;
