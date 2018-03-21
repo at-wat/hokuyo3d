@@ -33,7 +33,11 @@
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/asio.hpp>
+
+#include <algorithm>
+#include <deque>
 #include <string>
+
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -53,7 +57,7 @@ public:
       const vssp::RangeIndex &range_index,
       const boost::shared_array<uint16_t> &index,
       const boost::shared_array<vssp::XYZI> &points,
-      const boost::chrono::microseconds &delay_read)
+      const boost::posix_time::ptime &time_read)
   {
     if (timestamp_base_ == ros::Time(0))
       return;
@@ -116,14 +120,30 @@ public:
     {
       if (enable_pc_)
       {
-        pub_pc_.publish(cloud_);
+        if (cloud_.header.stamp < cloud_stamp_last_ && !allow_jump_back_)
+        {
+          ROS_INFO("Dropping timestamp jump backed cloud");
+        }
+        else
+        {
+          pub_pc_.publish(cloud_);
+        }
+        cloud_stamp_last_ = cloud_.header.stamp;
         cloud_.points.clear();
         cloud_.channels[0].values.clear();
       }
       if (enable_pc2_)
       {
         cloud2_.data.resize(cloud2_.width * cloud2_.point_step);
-        pub_pc2_.publish(cloud2_);
+        if (cloud2_.header.stamp < cloud_stamp_last_ && !allow_jump_back_)
+        {
+          ROS_INFO("Dropping timestamp jump backed cloud2");
+        }
+        else
+        {
+          pub_pc2_.publish(cloud2_);
+        }
+        cloud_stamp_last_ = cloud2_.header.stamp;
         cloud2_.data.clear();
       }
       if (range_header.frame != frame_)
@@ -135,28 +155,39 @@ public:
   }
   void cbError(
       const vssp::Header &header,
-      const std::string &message)
+      const std::string &message,
+      const boost::posix_time::ptime &time_read)
   {
     ROS_ERROR("%s", message.c_str());
   }
   void cbPing(
       const vssp::Header &header,
-      const boost::chrono::microseconds &delay_read)
+      const boost::posix_time::ptime &time_read)
   {
-    ros::Time now = ros::Time::now() - ros::Duration(delay_read.count() * 0.001 * 0.001);
-    ros::Duration delay =
+    const ros::Time now = ros::Time::fromBoost(time_read);
+    const ros::Duration delay =
         ((now - time_ping_) - ros::Duration(header.send_time_ms * 0.001 - header.received_time_ms * 0.001)) * 0.5;
-    ros::Time base = time_ping_ + delay - ros::Duration(header.received_time_ms * 0.001);
+    const ros::Time base = time_ping_ + delay - ros::Duration(header.received_time_ms * 0.001);
+
+    timestamp_base_buffer_.push_back(base);
+    if (timestamp_base_buffer_.size() > 5)
+      timestamp_base_buffer_.pop_front();
+
+    auto sorted_timstamp_base = timestamp_base_buffer_;
+    std::sort(sorted_timstamp_base.begin(), sorted_timstamp_base.end());
+
     if (timestamp_base_ == ros::Time(0))
-      timestamp_base_ = base;
+      timestamp_base_ = sorted_timstamp_base[sorted_timstamp_base.size() / 2];
     else
-      timestamp_base_ += (base - timestamp_base_) * 0.01;
+      timestamp_base_ += (sorted_timstamp_base[sorted_timstamp_base.size() / 2] - timestamp_base_) * 0.1;
+
+    ROS_DEBUG("timestamp_base: %lf", timestamp_base_.toSec());
   }
   void cbAux(
       const vssp::Header &header,
       const vssp::AuxHeader &aux_header,
       const boost::shared_array<vssp::Aux> &auxs,
-      const boost::chrono::microseconds &delay_read)
+      const boost::posix_time::ptime &time_read)
   {
     if (timestamp_base_ == ros::Time(0))
       return;
@@ -176,7 +207,15 @@ public:
         imu_.linear_acceleration.x = auxs[i].lin_acc.x;
         imu_.linear_acceleration.y = auxs[i].lin_acc.y;
         imu_.linear_acceleration.z = auxs[i].lin_acc.z;
-        pub_imu_.publish(imu_);
+        if (imu_stamp_last_ > imu_.header.stamp && !allow_jump_back_)
+        {
+          ROS_INFO("Dropping timestamp jump backed imu");
+        }
+        else
+        {
+          pub_imu_.publish(imu_);
+        }
+        imu_stamp_last_ = imu_.header.stamp;
         imu_.header.stamp += ros::Duration(aux_header.data_ms * 0.001);
       }
     }
@@ -189,7 +228,15 @@ public:
         mag_.magnetic_field.x = auxs[i].mag.x;
         mag_.magnetic_field.y = auxs[i].mag.y;
         mag_.magnetic_field.z = auxs[i].mag.z;
-        pub_mag_.publish(mag_);
+        if (mag_stamp_last_ > imu_.header.stamp && !allow_jump_back_)
+        {
+          ROS_INFO("Dropping timestamp jump backed mag");
+        }
+        else
+        {
+          pub_mag_.publish(mag_);
+        }
+        mag_stamp_last_ = imu_.header.stamp;
         mag_.header.stamp += ros::Duration(aux_header.data_ms * 0.001);
       }
     }
@@ -240,6 +287,8 @@ public:
     set_auto_reset_ = pnh_.hasParam("auto_reset");
     pnh_.param("auto_reset", auto_reset_, false);
 
+    pnh_.param("allow_jump_back", allow_jump_back_, false);
+
     std::string output_cycle;
     pnh_.param("output_cycle", output_cycle, std::string("field"));
 
@@ -260,7 +309,7 @@ public:
     driver_.registerCallback(boost::bind(&Hokuyo3dNode::cbPoint, this, _1, _2, _3, _4, _5, _6));
     driver_.registerAuxCallback(boost::bind(&Hokuyo3dNode::cbAux, this, _1, _2, _3, _4));
     driver_.registerPingCallback(boost::bind(&Hokuyo3dNode::cbPing, this, _1, _2));
-    driver_.registerErrorCallback(boost::bind(&Hokuyo3dNode::cbError, this, _1, _2));
+    driver_.registerErrorCallback(boost::bind(&Hokuyo3dNode::cbError, this, _1, _2, _3));
     field_ = 0;
     frame_ = 0;
     line_ = 0;
@@ -381,10 +430,15 @@ protected:
 
   bool enable_pc_;
   bool enable_pc2_;
+  bool allow_jump_back_;
   boost::mutex connect_mutex_;
 
   ros::Time time_ping_;
   ros::Time timestamp_base_;
+  std::deque<ros::Time> timestamp_base_buffer_;
+  ros::Time imu_stamp_last_;
+  ros::Time mag_stamp_last_;
+  ros::Time cloud_stamp_last_;
 
   boost::asio::io_service io_;
   boost::asio::deadline_timer timer_;
