@@ -33,7 +33,11 @@
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/asio.hpp>
+
+#include <algorithm>
+#include <deque>
 #include <string>
+
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -118,7 +122,7 @@ public:
       {
         if (cloud_.header.stamp < cloud_stamp_last_)
         {
-          ROS_ERROR("Dropping cloud timestamp jump back due to time sync process");
+          ROS_ERROR("Dropping timestamp jump backed cloud");
         }
         else
         {
@@ -133,7 +137,7 @@ public:
         cloud2_.data.resize(cloud2_.width * cloud2_.point_step);
         if (cloud2_.header.stamp < cloud_stamp_last_)
         {
-          ROS_ERROR("Dropping cloud2 timestamp jump back due to time sync process");
+          ROS_ERROR("Dropping timestamp jump backed cloud2");
         }
         else
         {
@@ -164,10 +168,18 @@ public:
     const ros::Duration delay =
         ((now - time_ping_) - ros::Duration(header.send_time_ms * 0.001 - header.received_time_ms * 0.001)) * 0.5;
     const ros::Time base = time_ping_ + delay - ros::Duration(header.received_time_ms * 0.001);
+
+    timestamp_base_buffer_.push_back(base);
+    if (timestamp_base_buffer_.size() > 5)
+      timestamp_base_buffer_.pop_front();
+
+    auto sorted_timstamp_base = timestamp_base_buffer_;
+    std::sort(sorted_timstamp_base.begin(), sorted_timstamp_base.end());
+
     if (timestamp_base_ == ros::Time(0))
-      timestamp_base_ = base;
+      timestamp_base_ = sorted_timstamp_base[sorted_timstamp_base.size() / 2];
     else
-      timestamp_base_ += (base - timestamp_base_) * 0.1;
+      timestamp_base_ += (sorted_timstamp_base[sorted_timstamp_base.size() / 2] - timestamp_base_) * 0.1;
   }
   void cbAux(
       const vssp::Header &header,
@@ -195,7 +207,7 @@ public:
         imu_.linear_acceleration.z = auxs[i].lin_acc.z;
         if (imu_stamp_last_ > imu_.header.stamp)
         {
-          ROS_ERROR("Dropping IMU timestamp jump back due to time sync process");
+          ROS_ERROR("Dropping timestamp jump backed imu");
         }
         else
         {
@@ -216,7 +228,7 @@ public:
         mag_.magnetic_field.z = auxs[i].mag.z;
         if (mag_stamp_last_ > imu_.header.stamp)
         {
-          ROS_ERROR("Dropping MAG timestamp jump back due to time sync process");
+          ROS_ERROR("Dropping timestamp jump backed mag");
         }
         else
         {
@@ -418,6 +430,7 @@ protected:
 
   ros::Time time_ping_;
   ros::Time timestamp_base_;
+  std::deque<ros::Time> timestamp_base_buffer_;
   ros::Time imu_stamp_last_;
   ros::Time mag_stamp_last_;
   ros::Time cloud_stamp_last_;
