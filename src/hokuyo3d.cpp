@@ -116,14 +116,30 @@ public:
     {
       if (enable_pc_)
       {
-        pub_pc_.publish(cloud_);
+        if (cloud_.header.stamp < cloud_stamp_last_)
+        {
+          ROS_ERROR("Dropping cloud timestamp jump back due to time sync process");
+        }
+        else
+        {
+          pub_pc_.publish(cloud_);
+        }
+        cloud_stamp_last_ = cloud_.header.stamp;
         cloud_.points.clear();
         cloud_.channels[0].values.clear();
       }
       if (enable_pc2_)
       {
         cloud2_.data.resize(cloud2_.width * cloud2_.point_step);
-        pub_pc2_.publish(cloud2_);
+        if (cloud2_.header.stamp < cloud_stamp_last_)
+        {
+          ROS_ERROR("Dropping cloud2 timestamp jump back due to time sync process");
+        }
+        else
+        {
+          pub_pc2_.publish(cloud2_);
+        }
+        cloud_stamp_last_ = cloud2_.header.stamp;
         cloud2_.data.clear();
       }
       if (range_header.frame != frame_)
@@ -177,7 +193,15 @@ public:
         imu_.linear_acceleration.x = auxs[i].lin_acc.x;
         imu_.linear_acceleration.y = auxs[i].lin_acc.y;
         imu_.linear_acceleration.z = auxs[i].lin_acc.z;
-        pub_imu_.publish(imu_);
+        if (imu_stamp_last_ > imu_.header.stamp)
+        {
+          ROS_ERROR("Dropping IMU timestamp jump back due to time sync process");
+        }
+        else
+        {
+          pub_imu_.publish(imu_);
+        }
+        imu_stamp_last_ = imu_.header.stamp;
         imu_.header.stamp += ros::Duration(aux_header.data_ms * 0.001);
       }
     }
@@ -190,7 +214,15 @@ public:
         mag_.magnetic_field.x = auxs[i].mag.x;
         mag_.magnetic_field.y = auxs[i].mag.y;
         mag_.magnetic_field.z = auxs[i].mag.z;
-        pub_mag_.publish(mag_);
+        if (mag_stamp_last_ > imu_.header.stamp)
+        {
+          ROS_ERROR("Dropping MAG timestamp jump back due to time sync process");
+        }
+        else
+        {
+          pub_mag_.publish(mag_);
+        }
+        mag_stamp_last_ = imu_.header.stamp;
         mag_.header.stamp += ros::Duration(aux_header.data_ms * 0.001);
       }
     }
@@ -386,6 +418,9 @@ protected:
 
   ros::Time time_ping_;
   ros::Time timestamp_base_;
+  ros::Time imu_stamp_last_;
+  ros::Time mag_stamp_last_;
+  ros::Time cloud_stamp_last_;
 
   boost::asio::io_service io_;
   boost::asio::deadline_timer timer_;
