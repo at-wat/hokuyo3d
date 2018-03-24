@@ -2,7 +2,7 @@
 <package>
   <name>hokuyo3d</name>
   <version>0.1.1</version>
-  <description>ROS driver for HOKUYO 3D sensor</description>
+  <description>ROS driver node for HOKUYO 3D LIDARs</description>
 
   <maintainer email="atsushi.w@ieee.org">Atsushi Watanabe</maintainer>
   <license>BSD</license>
