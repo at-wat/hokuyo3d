@@ -2,8 +2,8 @@
 Changelog for package hokuyo3d
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.0 (2018-03-24)
+------------------
 * Fix timestamp estimation (`#35 <https://github.com/at-wat/hokuyo3d/issues/35>`_)
   * Fix timestamp estimation
   * Decrease timstamp base lpf
