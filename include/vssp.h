@@ -108,7 +108,8 @@ public:
   {
     cb_connect_ = cb;
     boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(ip), port);
-    timer_.expires_from_now(boost::posix_time::seconds(timeout_));
+    timer_.expires_from_now(
+        boost::posix_time::milliseconds(static_cast<long>(1000 * timeout_)));
     timer_.async_wait(boost::bind(&VsspDriver::onTimeoutConnect, this, boost::asio::placeholders::error));
     socket_.async_connect(endpoint, boost::bind(&vssp::VsspDriver::onConnect, this, boost::asio::placeholders::error));
   }
@@ -191,7 +192,8 @@ public:
   void receivePackets()
   {
     timer_.cancel();
-    timer_.expires_from_now(boost::posix_time::seconds(timeout_));
+    timer_.expires_from_now(
+        boost::posix_time::milliseconds(static_cast<long>(1000 * timeout_)));
     timer_.async_wait(boost::bind(&VsspDriver::onTimeout, this, boost::asio::placeholders::error));
     // Read at least 4 bytes.
     // In most case, callback function will be called for each VSSP line.
