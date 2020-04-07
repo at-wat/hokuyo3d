@@ -334,7 +334,7 @@ private:
       size_t length = header.length - header.header_length;
       buf_.consume(header.header_length);
 
-      do
+      for (int i = 0; i < 1; ++i)
       {
         switch (header.type)
         {
@@ -518,7 +518,7 @@ private:
           default:
             break;
         }
-      } while (false);
+      }
       buf_.consume(length);
     }
     receivePackets();
