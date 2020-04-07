@@ -47,7 +47,6 @@
 
 namespace vssp
 {
-
 class VsspDriver
 {
 private:
@@ -58,24 +57,24 @@ private:
   AuxFactorArray aux_factor_;
 
   boost::function<void(
-      const vssp::Header &,
-      const vssp::RangeHeader &,
-      const vssp::RangeIndex &,
-      const boost::shared_array<uint16_t> &,
-      const boost::shared_array<vssp::XYZI> &,
-      const boost::posix_time::ptime &)> cb_point_;
+      const vssp::Header&,
+      const vssp::RangeHeader&,
+      const vssp::RangeIndex&,
+      const boost::shared_array<uint16_t>&,
+      const boost::shared_array<vssp::XYZI>&,
+      const boost::posix_time::ptime&)> cb_point_;
   boost::function<void(
-      const vssp::Header &,
-      const vssp::AuxHeader &,
-      const boost::shared_array<vssp::Aux> &,
-      const boost::posix_time::ptime &)> cb_aux_;
+      const vssp::Header&,
+      const vssp::AuxHeader&,
+      const boost::shared_array<vssp::Aux>&,
+      const boost::posix_time::ptime&)> cb_aux_;
   boost::function<void(
-      const vssp::Header &,
-      const boost::posix_time::ptime &)> cb_ping_;
+      const vssp::Header&,
+      const boost::posix_time::ptime&)> cb_ping_;
   boost::function<void(
-      const vssp::Header &,
-      const std::string &,
-      const boost::posix_time::ptime &)> cb_error_;
+      const vssp::Header&,
+      const std::string&,
+      const boost::posix_time::ptime&)> cb_error_;
   boost::function<void(bool)> cb_connect_;
   boost::shared_array<const double> tbl_h_;
   std::vector<boost::shared_array<const TableSincos>> tbl_v_;
@@ -104,7 +103,7 @@ public:
   {
     timeout_ = to;
   }
-  void connect(const char *ip, const unsigned int port, decltype(cb_connect_) cb)
+  void connect(const char* ip, const unsigned int port, decltype(cb_connect_) cb)
   {
     cb_connect_ = cb;
     boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(ip), port);
@@ -135,8 +134,7 @@ public:
     else
       send(std::string("SET:_ars=0\n"));
   }
-  [[deprecated("use setHorizontalInterlace() instead of setInterlace()")]]
-  void setInterlace(const int itl)
+  [[deprecated("use setHorizontalInterlace() instead of setInterlace()")]] void setInterlace(const int itl)
   {
     setHorizontalInterlace(itl);
   }
@@ -214,7 +212,7 @@ public:
   {
     io_service_.stop();
   }
-  boost::asio::io_service &getIoService()
+  boost::asio::io_service& getIoService()
   {
     return io_service_;
   }
@@ -226,7 +224,7 @@ private:
     boost::asio::async_write(socket_, boost::asio::buffer(*data),
                              boost::bind(&VsspDriver::onSend, this, boost::asio::placeholders::error, data));
   }
-  void onTimeoutConnect(const boost::system::error_code &error)
+  void onTimeoutConnect(const boost::system::error_code& error)
   {
     if (!error)
     {
@@ -234,7 +232,7 @@ private:
       io_service_.stop();
     }
   }
-  void onTimeout(const boost::system::error_code &error)
+  void onTimeout(const boost::system::error_code& error)
   {
     if (!error)
     {
@@ -242,7 +240,7 @@ private:
       io_service_.stop();
     }
   }
-  void onConnect(const boost::system::error_code &error)
+  void onConnect(const boost::system::error_code& error)
   {
     timer_.cancel();
     if (error)
@@ -253,7 +251,7 @@ private:
     }
     cb_connect_(true);
   }
-  void onSend(const boost::system::error_code &error, boost::shared_ptr<std::string> data)
+  void onSend(const boost::system::error_code& error, boost::shared_ptr<std::string> data)
   {
     if (error)
     {
@@ -263,11 +261,11 @@ private:
   }
   template <class DATA_TYPE>
   bool rangeToXYZ(
-      const vssp::RangeHeader &range_header,
-      const vssp::RangeHeaderV2R1 &range_header_v2r1,
-      const vssp::RangeIndex &range_index,
-      const boost::shared_array<const uint16_t> &index,
-      const boost::shared_array<vssp::XYZI> &points)
+      const vssp::RangeHeader& range_header,
+      const vssp::RangeHeaderV2R1& range_header_v2r1,
+      const vssp::RangeIndex& range_index,
+      const boost::shared_array<const uint16_t>& index,
+      const boost::shared_array<vssp::XYZI>& points)
   {
     if (tbl_vn_loaded_.size() != range_header_v2r1.vertical_interlace)
       return false;
@@ -275,7 +273,7 @@ private:
     int i = 0;
     const double h_head = range_header.line_head_h_angle_ratio * 2.0 * M_PI / 65535.0;
     const double h_tail = range_header.line_tail_h_angle_ratio * 2.0 * M_PI / 65535.0;
-    const DATA_TYPE *data = boost::asio::buffer_cast<const DATA_TYPE *>(buf_.data());
+    const DATA_TYPE* data = boost::asio::buffer_cast<const DATA_TYPE*>(buf_.data());
     const int tv = range_header_v2r1.vertical_field;
     for (int s = 0; s < range_index.nspots; s++)
     {
@@ -289,7 +287,7 @@ private:
     }
     return true;
   }
-  void onRead(const boost::system::error_code &error)
+  void onRead(const boost::system::error_code& error)
   {
     const auto time_read = boost::posix_time::microsec_clock::universal_time();
     const auto length_total = buf_.size();
@@ -313,15 +311,15 @@ private:
         break;
       }
       // Read packet Header
-      const vssp::Header header = *boost::asio::buffer_cast<const vssp::Header *>(buf_.data());
+      const vssp::Header header = *boost::asio::buffer_cast<const vssp::Header*>(buf_.data());
       if (header.mark != vssp::VSSP_MARK)
       {
         // Invalid packet
         // find VSSP mark
-        const uint8_t *data = boost::asio::buffer_cast<const uint8_t *>(buf_.data());
+        const uint8_t* data = boost::asio::buffer_cast<const uint8_t*>(buf_.data());
         for (size_t i = 1; i < buf_.size() - sizeof(uint32_t); i++)
         {
-          const uint32_t *mark = reinterpret_cast<const uint32_t *>(data + i);
+          const uint32_t* mark = reinterpret_cast<const uint32_t*>(data + i);
           if (*mark == vssp::VSSP_MARK)
           {
             buf_.consume(i);
@@ -344,7 +342,7 @@ private:
           case TYPE_ER:
             // Error message
             {
-              const std::string data(boost::asio::buffer_cast<const char *>(buf_.data()));
+              const std::string data(boost::asio::buffer_cast<const char*>(buf_.data()));
               std::string message(data, 0, header.length - header.header_length - 1);
               if (cb_error_)
                 cb_error_(header, message, time_read);
@@ -361,7 +359,7 @@ private:
           case TYPE_GET:
             // Response to get command
             {
-              const std::string data(boost::asio::buffer_cast<const char *>(buf_.data()));
+              const std::string data(boost::asio::buffer_cast<const char*>(buf_.data()));
               std::vector<std::string> lines;
               boost::algorithm::split(lines, data, boost::algorithm::is_any_of("\n\r"));
               if (lines.size() == 0)
@@ -387,7 +385,7 @@ private:
 
                   boost::shared_array<TableSincos> tbl_v(new TableSincos[cells.size()]);
                   int i = 0;
-                  for (auto &cell : cells)
+                  for (auto& cell : cells)
                   {
                     const double rad(std::strtol(cell.c_str(), nullptr, 16) * 2.0 * M_PI / 65535.0);
                     sincos(rad, &tbl_v[i].s, &tbl_v[i].c);
@@ -408,7 +406,7 @@ private:
                 {
                   boost::shared_array<double> tbl_h(new double[cells.size()]);
                   int i = 0;
-                  for (auto &cell : cells)
+                  for (auto& cell : cells)
                   {
                     tbl_h[i] = std::strtol(cell.c_str(), nullptr, 16) / 65535.0;
                     i++;
@@ -443,18 +441,18 @@ private:
             }
             {
               // Decode range data Header
-              const vssp::RangeHeader range_header = *boost::asio::buffer_cast<const vssp::RangeHeader *>(buf_.data());
+              const vssp::RangeHeader range_header = *boost::asio::buffer_cast<const vssp::RangeHeader*>(buf_.data());
               vssp::RangeHeaderV2R1 range_header_v2r1 = RANGE_HEADER_V2R1_DEFAULT;
               if (range_header.header_length >= 24)
               {
-                range_header_v2r1 = *boost::asio::buffer_cast<const vssp::RangeHeaderV2R1 *>(
+                range_header_v2r1 = *boost::asio::buffer_cast<const vssp::RangeHeaderV2R1*>(
                     buf_.data() + sizeof(vssp::RangeHeader));
               }
               buf_.consume(range_header.header_length);
               length -= range_header.header_length;
 
               // Decode range index Header
-              const vssp::RangeIndex range_index = *boost::asio::buffer_cast<const vssp::RangeIndex *>(buf_.data());
+              const vssp::RangeIndex range_index = *boost::asio::buffer_cast<const vssp::RangeIndex*>(buf_.data());
               size_t index_length = range_index.index_length;
               buf_.consume(sizeof(vssp::RangeIndex));
               index_length -= sizeof(vssp::RangeIndex);
@@ -462,7 +460,7 @@ private:
 
               // Decode range index
               boost::shared_array<uint16_t> index(new uint16_t[range_index.nspots + 1]);
-              std::memcpy(index.get(), boost::asio::buffer_cast<const vssp::RangeIndex *>(buf_.data()),
+              std::memcpy(index.get(), boost::asio::buffer_cast<const vssp::RangeIndex*>(buf_.data()),
                           sizeof(uint16_t) * (range_index.nspots + 1));
               buf_.consume(index_length);
               length -= index_length;
@@ -472,19 +470,19 @@ private:
               bool success;
               switch (header.type)
               {
-              case TYPE_RI:
-                // Range and Intensity
-                success = rangeToXYZ<vssp::DataRangeIntensity>(
-                    range_header, range_header_v2r1, range_index, index, points);
-                break;
-              case TYPE_RO:
-                // Range
-                success = rangeToXYZ<vssp::DataRangeOnly>(
-                    range_header, range_header_v2r1, range_index, index, points);
-                break;
-              default:
-                success = false;
-                break;
+                case TYPE_RI:
+                  // Range and Intensity
+                  success = rangeToXYZ<vssp::DataRangeIntensity>(
+                      range_header, range_header_v2r1, range_index, index, points);
+                  break;
+                case TYPE_RO:
+                  // Range
+                  success = rangeToXYZ<vssp::DataRangeOnly>(
+                      range_header, range_header_v2r1, range_index, index, points);
+                  break;
+                default:
+                  success = false;
+                  break;
               }
               if (!success)
                 break;
@@ -495,7 +493,7 @@ private:
             // Aux data
             {
               // Decode range data Header
-              const vssp::AuxHeader aux_header = *boost::asio::buffer_cast<const vssp::AuxHeader *>(buf_.data());
+              const vssp::AuxHeader aux_header = *boost::asio::buffer_cast<const vssp::AuxHeader*>(buf_.data());
               buf_.consume(aux_header.header_length);
               length -= aux_header.header_length;
 
@@ -503,7 +501,7 @@ private:
               boost::shared_array<vssp::Aux> auxs(new vssp::Aux[aux_header.data_count]);
               for (int i = 0; i < aux_header.data_count; i++)
               {
-                const vssp::AuxData *data = boost::asio::buffer_cast<const vssp::AuxData *>(buf_.data());
+                const vssp::AuxData* data = boost::asio::buffer_cast<const vssp::AuxData*>(buf_.data());
                 int offset = 0;
                 for (AuxId b = vssp::AX_MASK_LAST; b >= vssp::AX_MASK_FIRST; b = static_cast<AuxId>(b - 1))
                 {
@@ -520,8 +518,7 @@ private:
           default:
             break;
         }
-      }
-      while (false);
+      } while (false);
       buf_.consume(length);
     }
     receivePackets();
