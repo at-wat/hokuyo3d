@@ -81,7 +81,7 @@ private:
   bool tbl_h_loaded_;
   bool tbl_v_loaded_;
   std::vector<bool> tbl_vn_loaded_;
-  double timeout_;
+  boost::posix_time::time_duration timeout_;
 
   boost::asio::streambuf buf_;
 
@@ -96,18 +96,18 @@ public:
     , cb_ping_(0)
     , tbl_h_loaded_(false)
     , tbl_v_loaded_(false)
-    , timeout_(1.0)
+    , timeout_(boost::posix_time::seconds(1))
   {
   }
   void setTimeout(const double to)
   {
-    timeout_ = to;
+    timeout_ = boost::posix_time::milliseconds(static_cast<int64_t>(1000 * to));
   }
   void connect(const char* ip, const unsigned int port, decltype(cb_connect_) cb)
   {
     cb_connect_ = cb;
     boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(ip), port);
-    timer_.expires_from_now(boost::posix_time::seconds(timeout_));
+    timer_.expires_from_now(timeout_);
     timer_.async_wait(boost::bind(&VsspDriver::onTimeoutConnect, this, boost::asio::placeholders::error));
     socket_.async_connect(endpoint, boost::bind(&vssp::VsspDriver::onConnect, this, boost::asio::placeholders::error));
   }
@@ -189,7 +189,7 @@ public:
   void receivePackets()
   {
     timer_.cancel();
-    timer_.expires_from_now(boost::posix_time::seconds(timeout_));
+    timer_.expires_from_now(timeout_);
     timer_.async_wait(boost::bind(&VsspDriver::onTimeout, this, boost::asio::placeholders::error));
     // Read at least 4 bytes.
     // In most case, callback function will be called for each VSSP line.
