@@ -25,24 +25,24 @@ env:
 before_install:
   - python3 -m pip install --upgrade --user gh-pr-comment
   - BUILD_LINK="[[#${TRAVIS_BUILD_NUMBER}](${TRAVIS_BUILD_WEB_URL})]"
-  - mkdir -p .log && chmod a+rwx .log
+  - mkdir -p .logs && chmod a+rwx .logs
 
 script:
   - |
     docker run -it --rm \
       -v $(pwd):/src/$(basename $(pwd)):ro \
-      -v $(pwd)/.log:/logs \
+      -v $(pwd)/.logs:/logs \
       alpineros/ros-abuild:${ALPINE_ROS_DISTRO}
 after_success:
   - |
     gh-pr-comment \
       "${BUILD_LINK} PASSED on ${ALPINE_ROS_DISTRO}" \
-      "$(cat ./logs/summary.log || (echo 'Build log not found'; false))"
+      "$(cat ./.logs/summary.log || (echo 'Build log not found'; false))"
 after_failure:
   - |
     gh-pr-comment \
       "${BUILD_LINK} FAILED on ${ALPINE_ROS_DISTRO}" \
-      "$(cat ./logs/summary.log || (echo 'Build log not found'; false))"
+      "$(cat ./.logs/summary.log || (echo 'Build log not found'; false))"
 
 jobs:
   include:
