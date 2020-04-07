@@ -101,7 +101,7 @@ public:
   }
   void setTimeout(const double to)
   {
-    timeout_ = boost::posix_time::milliseconds(static_cast<long>(1000 * to));
+    timeout_ = boost::posix_time::milliseconds(static_cast<int64_t>(1000 * to));
   }
   void connect(const char* ip, const unsigned int port, decltype(cb_connect_) cb)
   {
