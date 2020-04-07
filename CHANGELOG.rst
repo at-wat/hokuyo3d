@@ -2,6 +2,19 @@
 Changelog for package hokuyo3d
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Update CI scripts (`#49 <https://github.com/at-wat/hokuyo3d/issues/49>`_)
+* Support Boost 1.69 (`#48 <https://github.com/at-wat/hokuyo3d/issues/48>`_)
+* Update pointer align style (`#47 <https://github.com/at-wat/hokuyo3d/issues/47>`_)
+* Update assets to v0.0.8 (`#46 <https://github.com/at-wat/hokuyo3d/issues/46>`_)
+* Update assets to v0.0.7 (`#45 <https://github.com/at-wat/hokuyo3d/issues/45>`_)
+* Update assets to v0.0.6 (`#44 <https://github.com/at-wat/hokuyo3d/issues/44>`_)
+* Ignore gh-pr-comment failure (`#42 <https://github.com/at-wat/hokuyo3d/issues/42>`_)
+* Fix CI bot (`#41 <https://github.com/at-wat/hokuyo3d/issues/41>`_)
+* Fix travis build branch (`#40 <https://github.com/at-wat/hokuyo3d/issues/40>`_)
+* Contributors: Atsushi Watanabe
+
 0.2.0 (2018-03-24)
 ------------------
 * Fix timestamp estimation (`#35 <https://github.com/at-wat/hokuyo3d/issues/35>`_)
