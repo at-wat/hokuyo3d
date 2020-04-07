@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>hokuyo3d</name>
-  <version>0.2.0</version>
+  <version>0.2.1</version>
   <description>ROS driver node for HOKUYO 3D LIDARs</description>
 
   <maintainer email="atsushi.w@ieee.org">Atsushi Watanabe</maintainer>

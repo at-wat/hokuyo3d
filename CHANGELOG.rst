@@ -2,8 +2,8 @@
 Changelog for package hokuyo3d
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.1 (2020-04-07)
+------------------
 * Update CI scripts (`#49 <https://github.com/at-wat/hokuyo3d/issues/49>`_)
 * Support Boost 1.69 (`#48 <https://github.com/at-wat/hokuyo3d/issues/48>`_)
 * Update pointer align style (`#47 <https://github.com/at-wat/hokuyo3d/issues/47>`_)
