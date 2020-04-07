@@ -1,23 +1,66 @@
-sudo: required
+dist: bionic
 services: docker
-
+language: bash
+addons:
+  apt:
+    packages:
+      - python3-pip
+      - python3-setuptools
 cache:
+  apt: true
   directories:
-    - /home/travis/docker/
-env:
-  global:
-    - DOCKER_CACHE_FILE=/home/travis/docker/cache.tar.lz4
+    - ${HOME}/.local/bin
+    - ${HOME}/.local/lib
+
 branches:
   only:
     - master
 
-before_install:
-  - .travis.scripts/load_cache.sh
+env:
+  matrix:
+    - ALPINE_ROS_DISTRO=3.7-kinetic
+    - ALPINE_ROS_DISTRO=3.8-melodic
+    - ALPINE_ROS_DISTRO=3.11-noetic
 
-install: true
+before_install:
+  - python3 -m pip install --upgrade --user gh-pr-comment
+  - BUILD_LINK="[[#${TRAVIS_BUILD_NUMBER}](${TRAVIS_BUILD_WEB_URL})]"
+  - mkdir -p .logs && chmod a+rwx .logs
 
 script:
-  - docker build -t ros-hokuyo3d:latest --pull=true ${TRAVIS_BUILD_DIR}
-  - docker run --rm -it -e TRAVIS_PULL_REQUEST -e TRAVIS_PULL_REQUEST_SLUG -e TRAVIS_BOT_GITHUB_TOKEN -e GITHUB_API_URL_BASE ros-hokuyo3d:latest /catkin_ws/src/hokuyo3d/.travis.scripts/test.sh
-  - .travis.scripts/save_cache.sh
+  - |
+    docker run -it --rm \
+      -v $(pwd):/src/$(basename $(pwd)):ro \
+      -v $(pwd)/.logs:/logs \
+      alpineros/ros-abuild:${ALPINE_ROS_DISTRO}
+after_success:
+  - |
+    gh-pr-comment \
+      "${BUILD_LINK} PASSED on ${ALPINE_ROS_DISTRO}" \
+      "$(cat ./.logs/summary.log || (echo 'Build log not found'; false))"
+after_failure:
+  - |
+    gh-pr-comment \
+      "${BUILD_LINK} FAILED on ${ALPINE_ROS_DISTRO}" \
+      "$(cat ./.logs/summary.log || (echo 'Build log not found'; false))"
 
+jobs:
+  include:
+    - stage: prerelease-test
+      if: head_branch =~ ^release-.*$
+      env:
+        - ROS_DISTRO_TARGET=kinetic
+      before_install: python3 -m pip install --upgrade --user gh-pr-comment
+      script: .travis/prerelease_test.sh
+    - stage: prerelease-test
+      if: head_branch =~ ^release-.*$
+      env:
+        - ROS_DISTRO_TARGET=melodic
+      before_install: python3 -m pip install --upgrade --user gh-pr-comment
+      script: .travis/prerelease_test.sh
+    - stage: prerelease-test
+      if: head_branch =~ ^release-.*$
+      env:
+        - ROS_DISTRO_TARGET=noetic
+      before_install: python3 -m pip install --upgrade --user gh-pr-comment
+      script: .travis/prerelease_test.sh
