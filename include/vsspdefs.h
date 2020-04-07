@@ -35,7 +35,6 @@
 
 namespace vssp
 {
-
 static const uint32_t VSSP_MARK = ('V' << 0) | ('S' << 8) | ('S' << 16) | ('P' << 24);
 static const uint32_t STATUS_OK = ('0' << 0) | ('0' << 8) | ('0' << 16) | (0xA << 24);
 static const uint32_t STATUS_COMMAND_UNKNOWN = ('1' << 0) | ('0' << 8) | ('1' << 16) | (0xA << 24);
@@ -167,7 +166,7 @@ public:
   XYZI()
   {
   }
-  XYZI(const double &v_sin, const double &v_cos, const double &h_sin, const double &h_cos)
+  XYZI(const double& v_sin, const double& v_cos, const double& h_sin, const double& h_cos)
   {
     i = 0;
     r = 0;
@@ -175,7 +174,7 @@ public:
     y = v_cos * h_sin;
     z = v_sin;
   }
-  XYZI operator*(const DataRangeIntensity &data) const
+  XYZI operator*(const DataRangeIntensity& data) const
   {
     XYZI ret = *this;
     double r = data.range_mm * 0.001;
@@ -186,7 +185,7 @@ public:
     ret.r = r;
     return ret;
   }
-  XYZI operator*(const DataRangeOnly &data) const
+  XYZI operator*(const DataRangeOnly& data) const
   {
     XYZI ret = *this;
     double r = data.range_mm * 0.001;
@@ -217,7 +216,7 @@ public:
   {
     return operator[](id);
   }
-  double &operator[](AuxId id)
+  double& operator[](AuxId id)
   {
     switch (id)
     {
@@ -255,13 +254,13 @@ static const double DEG = (M_PI / 180.0);
 static const AuxFactorArray AUX_FACTOR_DEFAULT =
     {
       {
-        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-        1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-        1.0,                                 // Temperature [?]
-        0.6e-6, 0.6e-6, 0.6e-6,              // Magnetometer [T]
-        G / 8192.0, G / 8192.0, G / 8192.0,  // Accelerometer [m/ss]
-        DEG / 65.5, DEG / 65.5, DEG / 65.5   // Gyrometer [rad/s]
+          1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+          1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+          1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+          1.0,                                 // Temperature [?]
+          0.6e-6, 0.6e-6, 0.6e-6,              // Magnetometer [T]
+          G / 8192.0, G / 8192.0, G / 8192.0,  // Accelerometer [m/ss]
+          DEG / 65.5, DEG / 65.5, DEG / 65.5   // Gyrometer [rad/s]
       }
     };
 
