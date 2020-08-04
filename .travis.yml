@@ -1,16 +1,6 @@
 dist: bionic
 services: docker
 language: bash
-addons:
-  apt:
-    packages:
-      - python3-pip
-      - python3-setuptools
-cache:
-  apt: true
-  directories:
-    - ${HOME}/.local/bin
-    - ${HOME}/.local/lib
 
 branches:
   only:
@@ -23,7 +13,7 @@ env:
     - ALPINE_ROS_DISTRO=3.11-noetic
 
 before_install:
-  - python3 -m pip install --upgrade --user gh-pr-comment
+  - curl -sL https://raw.githubusercontent.com/at-wat/gh-pr-comment/master/install.sh | sh -s
   - mkdir -p .logs && chmod a+rwx .logs
 
 script:
@@ -46,17 +36,17 @@ jobs:
       if: head_branch =~ ^release-.*$
       env:
         - ROS_DISTRO_TARGET=kinetic
-      before_install: python3 -m pip install --upgrade --user gh-pr-comment
+      before_install: curl -sL https://raw.githubusercontent.com/at-wat/gh-pr-comment/master/install.sh | sh -s
       script: .travis/prerelease_test.sh
     - stage: prerelease-test
       if: head_branch =~ ^release-.*$
       env:
         - ROS_DISTRO_TARGET=melodic
-      before_install: python3 -m pip install --upgrade --user gh-pr-comment
+      before_install: curl -sL https://raw.githubusercontent.com/at-wat/gh-pr-comment/master/install.sh | sh -s
       script: .travis/prerelease_test.sh
     - stage: prerelease-test
       if: head_branch =~ ^release-.*$
       env:
         - ROS_DISTRO_TARGET=noetic
-      before_install: python3 -m pip install --upgrade --user gh-pr-comment
+      before_install: curl -sL https://raw.githubusercontent.com/at-wat/gh-pr-comment/master/install.sh | sh -s
       script: .travis/prerelease_test.sh
