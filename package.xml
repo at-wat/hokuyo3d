@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<package>
+<package format="2">
   <name>hokuyo3d</name>
   <version>0.2.1</version>
   <description>ROS driver node for HOKUYO 3D LIDARs</description>
@@ -10,11 +10,8 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <build_depend>roscpp</build_depend>
-  <build_depend>rostest</build_depend>
-  <build_depend>roslint</build_depend>
-  <build_depend>sensor_msgs</build_depend>
+  <depend>roscpp</depend>
+  <depend>sensor_msgs</depend>
   
-  <run_depend>roscpp</run_depend>
-  <run_depend>sensor_msgs</run_depend>
+  <test_depend>roslint</test_depend>
 </package>
