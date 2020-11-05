@@ -16,10 +16,9 @@ include_directories(${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} include)
 add_executable(hokuyo3d src/hokuyo3d.cpp)
 target_link_libraries(hokuyo3d ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
-roslint_cpp()
-
 if(CATKIN_ENABLE_TESTING)
   find_package(roslint REQUIRED)
+  roslint_cpp()
   roslint_add_test()
 endif()
 
