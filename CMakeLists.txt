@@ -7,7 +7,7 @@ find_package(Boost 1.53 REQUIRED system serialization chrono thread)
 
 ## Declare a catkin package
 catkin_package(
-    DEPENDS roscpp sensor_msgs
+  CATKIN_DEPENDS roscpp sensor_msgs
 )
 
 add_compile_options(-std=c++11)
