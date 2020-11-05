@@ -290,7 +290,6 @@ private:
   void onRead(const boost::system::error_code& error)
   {
     const auto time_read = boost::posix_time::microsec_clock::universal_time();
-    const auto length_total = buf_.size();
     if (error == boost::asio::error::eof)
     {
       // Connection closed_
