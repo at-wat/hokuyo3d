@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(hokuyo3d)
 
 ## Find catkin and any catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs roslint)
+find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs)
 find_package(Boost 1.53 REQUIRED system serialization chrono thread)
 
 ## Declare a catkin package
@@ -19,6 +19,7 @@ target_link_libraries(hokuyo3d ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 roslint_cpp()
 
 if(CATKIN_ENABLE_TESTING)
+  find_package(roslint REQUIRED)
   roslint_add_test()
 endif()
 
