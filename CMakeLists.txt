@@ -1,32 +1,54 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
 project(hokuyo3d)
 
-## Find catkin and any catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs)
-find_package(Boost 1.53 REQUIRED system serialization chrono thread)
-
-## Declare a catkin package
-catkin_package(
-  CATKIN_DEPENDS roscpp sensor_msgs
-)
-
-add_compile_options(-std=c++11)
-include_directories(${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} include)
-
-add_executable(hokuyo3d src/hokuyo3d.cpp)
-target_link_libraries(hokuyo3d ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-
-if(CATKIN_ENABLE_TESTING)
-  find_package(roslint REQUIRED)
-  roslint_cpp()
-  roslint_add_test()
+# Default to C99
+if(NOT CMAKE_C_STANDARD)
+  set(CMAKE_C_STANDARD 99)
 endif()
 
-install(TARGETS hokuyo3d
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# Default to C++14
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+## Find dependencies
+find_package(ament_cmake REQUIRED)
+find_package(Boost REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+# find_package(Boost 1.53 REQUIRED system serialization chrono thread)
+
+include_directories(
+  include
+  ${Boost_INCLUDE_DIRS}
 )
 
-install(DIRECTORY launch/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+add_executable(hokuyo3d src/hokuyo3d.cpp)
+ament_target_dependencies(hokuyo3d
+  rclcpp
+  sensor_msgs)
+target_link_libraries(hokuyo3d ${Boost_LIBRARIES})
+
+install(TARGETS ${PROJECT_NAME}
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
 )
+
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
+# ament_export_libraries(${PROJECT_NAME})
+# ament_export_dependencies(ament_cmake)
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
+ament_package()

@@ -1,17 +1,21 @@
 <?xml version="1.0"?>
-<package format="2">
+<package format="3">
   <name>hokuyo3d</name>
-  <version>0.2.1</version>
-  <description>ROS driver node for HOKUYO 3D LIDARs</description>
-
-  <maintainer email="atsushi.w@ieee.org">Atsushi Watanabe</maintainer>
+  <version>1.0.0</version>
+  <description>ROS2 driver node for HOKUYO 3D LIDARs</description>
+  <maintainer email="zachary.allen@stratom.com">Zack Allen</maintainer>
   <license>BSD</license>
   <author email="atsushi.w@ieee.org">Atsushi Watanabe</author>
 
-  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>roscpp</depend>
+  <depend>rclcpp</depend>
   <depend>sensor_msgs</depend>
   
-  <test_depend>roslint</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>stratom_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
 </package>
