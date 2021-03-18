@@ -37,7 +37,9 @@
 #include <algorithm>
 #include <deque>
 #include <string>
+#include <thread>
 
+#include "rclcpp/executor.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include <sensor_msgs/msg/point_cloud.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
@@ -52,12 +54,12 @@ class Hokuyo3dNode : public rclcpp::Node
 {
 public:
   void cbPoint(
-      const vssp::Header& header,
-      const vssp::RangeHeader& range_header,
-      const vssp::RangeIndex& range_index,
-      const boost::shared_array<uint16_t>& index,
-      const boost::shared_array<vssp::XYZI>& points,
-      const boost::posix_time::ptime& time_read)
+      const vssp::Header &header,
+      const vssp::RangeHeader &range_header,
+      const vssp::RangeIndex &range_index,
+      const boost::shared_array<uint16_t> &index,
+      const boost::shared_array<vssp::XYZI> &points,
+      const boost::posix_time::ptime &time_read)
   {
     if (timestamp_base_ == rclcpp::Time(0))
       return;
@@ -98,7 +100,7 @@ public:
       // Pack PointCloud2 message
       cloud2_.data.resize((cloud2_.width + index[range_index.nspots]) * cloud2_.point_step);
 
-      float* data = reinterpret_cast<float*>(&cloud2_.data[0]);
+      float *data = reinterpret_cast<float *>(&cloud2_.data[0]);
       data += cloud2_.width * cloud2_.point_step / sizeof(float);
       for (int i = 0; i < index[range_index.nspots]; i++)
       {
@@ -154,15 +156,15 @@ public:
     }
   }
   void cbError(
-      const vssp::Header& header,
-      const std::string& message,
-      const boost::posix_time::ptime& time_read)
+      const vssp::Header &header,
+      const std::string &message,
+      const boost::posix_time::ptime &time_read)
   {
     RCLCPP_ERROR(this->get_logger(), "%s", message.c_str());
   }
   void cbPing(
-      const vssp::Header& header,
-      const boost::posix_time::ptime& time_read)
+      const vssp::Header &header,
+      const boost::posix_time::ptime &time_read)
   {
     auto time_conversion = time_read.time_of_day().seconds();
     const rclcpp::Time now = rclcpp::Time(time_conversion, 0);
@@ -185,10 +187,10 @@ public:
     RCLCPP_DEBUG(this->get_logger(), "timestamp_base: %lf", timestamp_base_.seconds());
   }
   void cbAux(
-      const vssp::Header& header,
-      const vssp::AuxHeader& aux_header,
-      const boost::shared_array<vssp::Aux>& auxs,
-      const boost::posix_time::ptime& time_read)
+      const vssp::Header &header,
+      const vssp::AuxHeader &aux_header,
+      const boost::shared_array<vssp::Aux> &auxs,
+      const boost::posix_time::ptime &time_read)
   {
     if (timestamp_base_ == rclcpp::Time(0))
       return;
@@ -265,9 +267,7 @@ public:
     }
   }
   Hokuyo3dNode()
-    : Node("hokuyo3d_node")
-    , timestamp_base_(rclcpp::Time(0))
-    , timer_(io_, boost::posix_time::milliseconds(500))
+      : Node("hokuyo3d_node"), timestamp_base_(rclcpp::Time(0)), timer_(io_, boost::posix_time::milliseconds(500))
   {
     if (this->get_parameter("horizontal_interlace", horizontal_interlace_) || !this->get_parameter("interlace", vertical_interlace_))
     {
@@ -281,7 +281,7 @@ public:
     vertical_interlace_ = this->declare_parameter("vertical_interlace", 1);
     ip_ = this->declare_parameter("ip", std::string("192.168.0.10"));
     port_ = this->declare_parameter("port", 10940);
-    frame_id_= this->declare_parameter("frame_id", std::string("hokuyo3d"));
+    frame_id_ = this->declare_parameter("frame_id", std::string("hokuyo3d"));
     imu_frame_id_ = this->declare_parameter("imu_frame_id", frame_id_ + "_imu");
     mag_frame_id_ = this->declare_parameter("mag_frame_id", frame_id_ + "_mag");
     range_min_ = this->declare_parameter("range_min", 0.0);
@@ -331,11 +331,12 @@ public:
     pub_mag_ = this->create_publisher<sensor_msgs::msg::MagneticField>("mag", 5);
 
     enable_pc_ = enable_pc2_ = false;
-    ros::SubscriberStatusCallback cb_con = boost::bind(&Hokuyo3dNode::cbSubscriber, this);
+    publish_timer_callback_ = this->create_wall_timer(std::chrono::milliseconds(200),
+                                                        std::bind(&Hokuyo3dNode::cbSubscriber, this));
 
     boost::lock_guard<boost::mutex> lock(connect_mutex_);
-    pub_pc_ = this->create_publisher<sensor_msgs::msg::PointCloud>("hokuyo_cloud", 5, cb_con, cb_con);
-    pub_pc2_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("hokuyo_cloud2", 5, cb_con, cb_con);
+    pub_pc_ = this->create_publisher<sensor_msgs::msg::PointCloud>("hokuyo_cloud", 5);
+    pub_pc2_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("hokuyo_cloud2", 5);
 
     // Start communication with the sensor
     driver_.connect(ip_.c_str(), port_, boost::bind(&Hokuyo3dNode::cbConnect, this, _1));
@@ -381,7 +382,7 @@ public:
     RCLCPP_INFO(this->get_logger(), "Connection closed");
     return false;
   }
-  void cbTimer(const boost::system::error_code& error)
+  void cbTimer(const boost::system::error_code &error)
   {
     if (error)
       return;
@@ -404,10 +405,11 @@ public:
     boost::thread thread(
         boost::bind(&boost::asio::io_service::run, &io_));
 
-    ros::AsyncSpinner spinner(1);
-    spinner.start();
+    rclcpp::executors::SingleThreadedExecutor executor;
+    std::thread executor_thread(std::bind(&rclcpp::executors::SingleThreadedExecutor::spin, &executor));
+    // spinner.start();
     driver_.spin();
-    spinner.stop();
+    // spinner.stop();
     timer_.cancel();
     RCLCPP_INFO(this->get_logger(), "Connection closed");
   }
@@ -427,6 +429,7 @@ protected:
   sensor_msgs::msg::PointCloud2 cloud2_;
   sensor_msgs::msg::Imu imu_;
   sensor_msgs::msg::MagneticField mag_;
+  rclcpp::TimerBase::SharedPtr publish_timer_callback_;
 
   bool enable_pc_;
   bool enable_pc2_;
@@ -466,7 +469,7 @@ protected:
   bool set_auto_reset_;
 };
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
   rclcpp::init(argc, argv);
   Hokuyo3dNode node;

@@ -1,0 +1,5 @@
+hokuyo3d:
+  ros__parameters:
+    vertical_interlace: 10
+    horizontal_interlace: 20
+    output_cycle: "frame"
