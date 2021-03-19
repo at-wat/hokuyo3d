@@ -275,6 +275,23 @@ public:
   Hokuyo3dNode()
       : Node("hokuyo3d_node"), timestamp_base_(rclcpp::Time(0)), timer_(io_, boost::posix_time::milliseconds(500))
   {
+    parameter_client_ = std::make_shared<rclcpp::SyncParametersClient>(this);
+
+    parameter_subscription_ = parameter_client_->on_parameter_event(std::bind(&Hokuyo3dNode::onParameterEvent, this, std::placeholders::_1));
+
+    // Setup parameter client
+    while (!parameter_client_->wait_for_service(std::chrono::seconds(5))) {
+      if (!rclcpp::ok()) {
+        RCLCPP_ERROR(
+          this->get_logger(),
+          "Interrupted while waiting for the service. Exiting.");
+        rclcpp::shutdown();
+      }
+      RCLCPP_INFO(
+        this->get_logger(),
+        "service not available, waiting again...");
+    }
+
     if (this->get_parameter("horizontal_interlace", horizontal_interlace_) || !this->get_parameter("interlace", vertical_interlace_))
     {
       horizontal_interlace_ = this->declare_parameter<int>("horizontal_interlace", 4);
@@ -355,6 +372,63 @@ public:
     driver_.poll();
     RCLCPP_INFO(this->get_logger(), "Communication stoped");
   }
+  void onParameterEvent(const rcl_interfaces::msg::ParameterEvent::SharedPtr event)
+  {
+    for (auto & changed_parameter : event->changed_parameters) {
+      updateParameterValue(changed_parameter);
+    }
+  }
+  void updateParameterValue(const rcl_interfaces::msg::Parameter param)
+  {
+    if(param.name == "allow_jump_back")
+    {
+      allow_jump_back_ = param.value.bool_value;
+    } else if(param.name == "auto_reset")
+    {
+      auto_reset_ = param.value.bool_value;
+    } else if(param.name == "frame_id")
+    {
+      frame_id_ = param.value.string_value;
+    } else if(param.name == "horizontal_interlace")
+    {
+      horizontal_interlace_ = param.value.integer_value;
+    } else if(param.name == "imu_frame_id")
+    {
+      imu_frame_id_ = param.value.string_value;
+    } else if(param.name == "ip")
+    {
+      ip_ = param.value.string_value;
+    } else if(param.name == "mag_frame_id")
+    {
+      mag_frame_id_ = param.value.string_value;
+    } else if(param.name == "output_cycle")
+    {
+      std::string output_cycle = param.value.string_value;
+      if (output_cycle.compare("frame") == 0)
+        cycle_ = CYCLE_FRAME;
+      else if (output_cycle.compare("field") == 0)
+        cycle_ = CYCLE_FIELD;
+      else if (output_cycle.compare("line") == 0)
+        cycle_ = CYCLE_LINE;
+      else
+      {
+        RCLCPP_ERROR(this->get_logger(), "Unknown output_cycle value %s", output_cycle.c_str());
+        rclcpp::shutdown();
+      }
+    } else if(param.name == "port")
+    {
+      port_ = param.value.integer_value;
+    } else if(param.name == "range_min")
+    {
+      range_min_ = param.value.double_value;
+    } else if(param.name == "use_sim_time")
+    {
+    } else if(param.name == "vertical_interlace")
+    {
+      vertical_interlace_ = param.value.integer_value;
+    }
+  }
+
   void cbSubscriber()
   {
     boost::lock_guard<boost::mutex> lock(connect_mutex_);
@@ -437,6 +511,9 @@ protected:
   sensor_msgs::msg::Imu imu_;
   sensor_msgs::msg::MagneticField mag_;
   rclcpp::TimerBase::SharedPtr cloud_publish_timer_callback_;
+  std::shared_ptr<rclcpp::SyncParametersClient> parameter_client_;
+  std::shared_ptr<rclcpp::Subscription<rcl_interfaces::msg::ParameterEvent,
+    std::allocator<void>>> parameter_subscription_;
 
   bool enable_pc_;
   bool enable_pc2_;
