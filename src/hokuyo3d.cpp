@@ -61,7 +61,7 @@ public:
       const boost::shared_array<vssp::XYZI> &points,
       const boost::posix_time::ptime &time_read)
   {
-    if (timestamp_base_ == rclcpp::Time(0))
+    if (timestamp_base_.seconds() == rclcpp::Time(0).seconds())
       return;
     // Pack scan data
     if (enable_pc_)
@@ -124,7 +124,7 @@ public:
       {
         if (cloud_.header.stamp.sec < cloud_stamp_last_.seconds() && !allow_jump_back_)
         {
-          RCLCPP_INFO(this->get_logger(), "Dropping timestamp jump backed cloud");
+          RCLCPP_ERROR(this->get_logger(), "Dropping timestamp jump backed cloud");
         }
         else
         {
@@ -139,7 +139,7 @@ public:
         cloud2_.data.resize(cloud2_.width * cloud2_.point_step);
         if (cloud2_.header.stamp.sec < cloud_stamp_last_.seconds() && !allow_jump_back_)
         {
-          RCLCPP_INFO(this->get_logger(), "Dropping timestamp jump backed cloud2");
+          RCLCPP_ERROR(this->get_logger(), "Dropping timestamp jump backed cloud2");
         }
         else
         {
@@ -166,20 +166,25 @@ public:
       const vssp::Header &header,
       const boost::posix_time::ptime &time_read)
   {
-    auto time_conversion = time_read.time_of_day().seconds();
-    const rclcpp::Time now = rclcpp::Time(time_conversion, 0);
-    const rclcpp::Duration delay =
-        ((now - time_ping_) - rclcpp::Duration(header.send_time_ms * 0.001 - header.received_time_ms * 0.001, 0)) * 0.5;
-    const rclcpp::Time base = time_ping_ + delay - rclcpp::Duration(header.received_time_ms * 0.001, 0);
-
+    /*
+    const ros::Time now = ros::Time::fromBoost(time_read);
+    const ros::Duration delay =
+        ((now - time_ping_) - ros::Duration(header.send_time_ms * 0.001 - header.received_time_ms * 0.001)) * 0.5;
+    const ros::Time base = time_ping_ + delay - ros::Duration(header.received_time_ms * 0.001);
+    */
+    const rclcpp::Time now = this->now();
+    rclcpp::Time delay =
+        rclcpp::Time(((now - time_ping_) - rclcpp::Duration(header.send_time_ms * 0.001 - header.received_time_ms * 0.001, 0)).seconds() * 0.5, 0);
+        
+    const rclcpp::Time base = rclcpp::Time(time_ping_.seconds() + delay.seconds() - header.received_time_ms * 0.001, 0);
     timestamp_base_buffer_.push_back(base);
     if (timestamp_base_buffer_.size() > 5)
       timestamp_base_buffer_.pop_front();
 
     auto sorted_timstamp_base = timestamp_base_buffer_;
     std::sort(sorted_timstamp_base.begin(), sorted_timstamp_base.end());
-
-    if (timestamp_base_ == rclcpp::Time(0))
+    
+    if (timestamp_base_.seconds() == rclcpp::Time(0).seconds())
       timestamp_base_ = sorted_timstamp_base[sorted_timstamp_base.size() / 2];
     else
       timestamp_base_ += (sorted_timstamp_base[sorted_timstamp_base.size() / 2] - timestamp_base_) * 0.1;
@@ -192,8 +197,11 @@ public:
       const boost::shared_array<vssp::Aux> &auxs,
       const boost::posix_time::ptime &time_read)
   {
-    if (timestamp_base_ == rclcpp::Time(0))
+    RCLCPP_ERROR(this->get_logger(), "HERE 1");
+    if (timestamp_base_.seconds() == rclcpp::Time(0).seconds())
       return;
+    
+    RCLCPP_ERROR(this->get_logger(), "HERE 2");
     rclcpp::Time stamp = timestamp_base_ + rclcpp::Duration(aux_header.timestamp_ms * 0.001, 0);
 
     if ((aux_header.data_bitfield & (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC)) ==
@@ -210,7 +218,8 @@ public:
         imu_.linear_acceleration.x = auxs[i].lin_acc.x;
         imu_.linear_acceleration.y = auxs[i].lin_acc.y;
         imu_.linear_acceleration.z = auxs[i].lin_acc.z;
-        if (imu_stamp_last_ > imu_.header.stamp && !allow_jump_back_)
+        RCLCPP_ERROR(this->get_logger(), "HERE 3");
+        if (imu_stamp_last_.seconds() > imu_.header.stamp.sec && !allow_jump_back_)
         {
           RCLCPP_INFO(this->get_logger(), "Dropping timestamp jump backed imu");
         }
@@ -222,6 +231,7 @@ public:
         imu_.header.stamp.sec += rclcpp::Duration(aux_header.data_ms * 0.001, 0).seconds();
       }
     }
+    RCLCPP_ERROR(this->get_logger(), "HERE 4");
     if ((aux_header.data_bitfield & vssp::AX_MASK_MAG) == vssp::AX_MASK_MAG)
     {
       mag_.header.frame_id = mag_frame_id_;
@@ -231,7 +241,8 @@ public:
         mag_.magnetic_field.x = auxs[i].mag.x;
         mag_.magnetic_field.y = auxs[i].mag.y;
         mag_.magnetic_field.z = auxs[i].mag.z;
-        if (mag_stamp_last_ > imu_.header.stamp && !allow_jump_back_)
+        RCLCPP_ERROR(this->get_logger(), "HERE 5");
+        if (mag_stamp_last_.seconds() > imu_.header.stamp.sec && !allow_jump_back_)
         {
           RCLCPP_INFO(this->get_logger(), "Dropping timestamp jump backed mag");
         }
@@ -243,6 +254,7 @@ public:
         mag_.header.stamp.sec += rclcpp::Duration(aux_header.data_ms * 0.001, 0).seconds();
       }
     }
+    RCLCPP_ERROR(this->get_logger(), "HERE 6");
   }
   void cbConnect(bool success)
   {
@@ -279,7 +291,7 @@ public:
       horizontal_interlace_ = this->declare_parameter("interlace", 4);
     }
     vertical_interlace_ = this->declare_parameter("vertical_interlace", 1);
-    ip_ = this->declare_parameter("ip", std::string("192.168.0.10"));
+    ip_ = this->declare_parameter("ip", std::string("192.168.0.60"));
     port_ = this->declare_parameter("port", 10940);
     frame_id_ = this->declare_parameter("frame_id", std::string("hokuyo3d"));
     imu_frame_id_ = this->declare_parameter("imu_frame_id", frame_id_ + "_imu");
@@ -330,9 +342,9 @@ public:
     pub_imu_ = this->create_publisher<sensor_msgs::msg::Imu>("imu", 5);
     pub_mag_ = this->create_publisher<sensor_msgs::msg::MagneticField>("mag", 5);
 
-    enable_pc_ = enable_pc2_ = false;
-    publish_timer_callback_ = this->create_wall_timer(std::chrono::milliseconds(200),
-                                                        std::bind(&Hokuyo3dNode::cbSubscriber, this));
+    enable_pc_ = enable_pc2_ = true;
+    // publish_timer_callback_ = this->create_wall_timer(std::chrono::milliseconds(200),
+    //                                                     std::bind(&Hokuyo3dNode::cbSubscriber, this));
 
     boost::lock_guard<boost::mutex> lock(connect_mutex_);
     pub_pc_ = this->create_publisher<sensor_msgs::msg::PointCloud>("hokuyo_cloud", 5);

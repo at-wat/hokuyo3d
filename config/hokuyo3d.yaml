@@ -3,3 +3,4 @@ hokuyo3d:
     vertical_interlace: 10
     horizontal_interlace: 20
     output_cycle: "frame"
+    ip: "192.168.0.60"
