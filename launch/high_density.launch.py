@@ -16,6 +16,7 @@ def generate_launch_description():
         'config',
         'hokuyo3d.yaml'
     )
+    print(config)
 
     # Follow node
     hokuyo3d = Node(
@@ -23,7 +24,7 @@ def generate_launch_description():
         executable='hokuyo3d',
         namespace=argument,
         output='screen',
-        parameters=[config],
+        parameters=[config]
         # arguments=['--ros-args', '--log-level', "debug"]
     )
 

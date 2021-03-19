@@ -124,7 +124,7 @@ public:
       {
         if (cloud_.header.stamp.sec < cloud_stamp_last_.seconds() && !allow_jump_back_)
         {
-          RCLCPP_ERROR(this->get_logger(), "Dropping timestamp jump backed cloud");
+          RCLCPP_INFO(this->get_logger(), "Dropping timestamp jump backed cloud");
         }
         else
         {
@@ -139,7 +139,7 @@ public:
         cloud2_.data.resize(cloud2_.width * cloud2_.point_step);
         if (cloud2_.header.stamp.sec < cloud_stamp_last_.seconds() && !allow_jump_back_)
         {
-          RCLCPP_ERROR(this->get_logger(), "Dropping timestamp jump backed cloud2");
+          RCLCPP_INFO(this->get_logger(), "Dropping timestamp jump backed cloud2");
         }
         else
         {
@@ -197,11 +197,9 @@ public:
       const boost::shared_array<vssp::Aux> &auxs,
       const boost::posix_time::ptime &time_read)
   {
-    RCLCPP_ERROR(this->get_logger(), "HERE 1");
     if (timestamp_base_.seconds() == rclcpp::Time(0).seconds())
       return;
     
-    RCLCPP_ERROR(this->get_logger(), "HERE 2");
     rclcpp::Time stamp = timestamp_base_ + rclcpp::Duration(aux_header.timestamp_ms * 0.001, 0);
 
     if ((aux_header.data_bitfield & (vssp::AX_MASK_ANGVEL | vssp::AX_MASK_LINACC)) ==
@@ -218,7 +216,6 @@ public:
         imu_.linear_acceleration.x = auxs[i].lin_acc.x;
         imu_.linear_acceleration.y = auxs[i].lin_acc.y;
         imu_.linear_acceleration.z = auxs[i].lin_acc.z;
-        RCLCPP_ERROR(this->get_logger(), "HERE 3");
         if (imu_stamp_last_.seconds() > imu_.header.stamp.sec && !allow_jump_back_)
         {
           RCLCPP_INFO(this->get_logger(), "Dropping timestamp jump backed imu");
@@ -231,7 +228,6 @@ public:
         imu_.header.stamp.sec += rclcpp::Duration(aux_header.data_ms * 0.001, 0).seconds();
       }
     }
-    RCLCPP_ERROR(this->get_logger(), "HERE 4");
     if ((aux_header.data_bitfield & vssp::AX_MASK_MAG) == vssp::AX_MASK_MAG)
     {
       mag_.header.frame_id = mag_frame_id_;
@@ -241,7 +237,6 @@ public:
         mag_.magnetic_field.x = auxs[i].mag.x;
         mag_.magnetic_field.y = auxs[i].mag.y;
         mag_.magnetic_field.z = auxs[i].mag.z;
-        RCLCPP_ERROR(this->get_logger(), "HERE 5");
         if (mag_stamp_last_.seconds() > imu_.header.stamp.sec && !allow_jump_back_)
         {
           RCLCPP_INFO(this->get_logger(), "Dropping timestamp jump backed mag");
@@ -254,7 +249,6 @@ public:
         mag_.header.stamp.sec += rclcpp::Duration(aux_header.data_ms * 0.001, 0).seconds();
       }
     }
-    RCLCPP_ERROR(this->get_logger(), "HERE 6");
   }
   void cbConnect(bool success)
   {
@@ -291,7 +285,7 @@ public:
       horizontal_interlace_ = this->declare_parameter("interlace", 4);
     }
     vertical_interlace_ = this->declare_parameter("vertical_interlace", 1);
-    ip_ = this->declare_parameter("ip", std::string("192.168.0.60"));
+    ip_ = this->declare_parameter("ip", std::string("192.168.0.10"));
     port_ = this->declare_parameter("port", 10940);
     frame_id_ = this->declare_parameter("frame_id", std::string("hokuyo3d"));
     imu_frame_id_ = this->declare_parameter("imu_frame_id", frame_id_ + "_imu");
@@ -342,9 +336,9 @@ public:
     pub_imu_ = this->create_publisher<sensor_msgs::msg::Imu>("imu", 5);
     pub_mag_ = this->create_publisher<sensor_msgs::msg::MagneticField>("mag", 5);
 
-    enable_pc_ = enable_pc2_ = true;
-    // publish_timer_callback_ = this->create_wall_timer(std::chrono::milliseconds(200),
-    //                                                     std::bind(&Hokuyo3dNode::cbSubscriber, this));
+    enable_pc_ = enable_pc2_ = false;
+    cloud_publish_timer_callback_ = this->create_wall_timer(std::chrono::milliseconds(200),
+                                                        std::bind(&Hokuyo3dNode::cbSubscriber, this));
 
     boost::lock_guard<boost::mutex> lock(connect_mutex_);
     pub_pc_ = this->create_publisher<sensor_msgs::msg::PointCloud>("hokuyo_cloud", 5);
@@ -417,8 +411,9 @@ public:
     boost::thread thread(
         boost::bind(&boost::asio::io_service::run, &io_));
 
-    rclcpp::executors::SingleThreadedExecutor executor;
-    std::thread executor_thread(std::bind(&rclcpp::executors::SingleThreadedExecutor::spin, &executor));
+    rclcpp::executors::MultiThreadedExecutor executor;
+    std::thread executor_thread(std::bind(&rclcpp::executors::MultiThreadedExecutor::spin, &executor));
+    executor.add_node(this->get_node_base_interface());
     // spinner.start();
     driver_.spin();
     // spinner.stop();
@@ -441,7 +436,7 @@ protected:
   sensor_msgs::msg::PointCloud2 cloud2_;
   sensor_msgs::msg::Imu imu_;
   sensor_msgs::msg::MagneticField mag_;
-  rclcpp::TimerBase::SharedPtr publish_timer_callback_;
+  rclcpp::TimerBase::SharedPtr cloud_publish_timer_callback_;
 
   bool enable_pc_;
   bool enable_pc2_;
@@ -484,9 +479,14 @@ protected:
 int main(int argc, char **argv)
 {
   rclcpp::init(argc, argv);
-  Hokuyo3dNode node;
-
-  node.spin();
+  auto node = std::make_shared<Hokuyo3dNode>();
+  // rclcpp::spin_some(node);
+  node->spin();
+  
+  // while(rclcpp::ok())
+  // {
+  //   rclcpp::spin_some(node);
+  // }
 
   return 1;
 }
