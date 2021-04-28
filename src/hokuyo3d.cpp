@@ -218,7 +218,7 @@ public:
         imu_.linear_acceleration.z = auxs[i].lin_acc.z;
         if (imu_stamp_last_.seconds() > imu_.header.stamp.sec && !allow_jump_back_)
         {
-          RCLCPP_INFO(this->get_logger(), "Dropping timestamp jump backed imu");
+          RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "Dropping timestamp jump backed imu");
         }
         else
         {
