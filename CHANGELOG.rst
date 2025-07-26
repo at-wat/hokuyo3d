@@ -2,6 +2,38 @@
 Changelog for package hokuyo3d
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Migrate to Alpine ROS 1 (`#87 <https://github.com/at-wat/hokuyo3d/issues/87>`_)
+* Update assets to v0.6.4 (`#86 <https://github.com/at-wat/hokuyo3d/issues/86>`_)
+* Update assets to v0.6.3 (`#85 <https://github.com/at-wat/hokuyo3d/issues/85>`_)
+* Update assets to v0.6.2 (`#84 <https://github.com/at-wat/hokuyo3d/issues/84>`_)
+* Update assets to v0.6.1 (`#83 <https://github.com/at-wat/hokuyo3d/issues/83>`_)
+* Update assets to v0.6.0 (`#82 <https://github.com/at-wat/hokuyo3d/issues/82>`_)
+* Update assets to v0.5.2 (`#81 <https://github.com/at-wat/hokuyo3d/issues/81>`_)
+* Update assets to v0.5.1 (`#80 <https://github.com/at-wat/hokuyo3d/issues/80>`_)
+* Update assets to v0.5.0 (`#79 <https://github.com/at-wat/hokuyo3d/issues/79>`_)
+* Update assets to v0.4.2 (`#78 <https://github.com/at-wat/hokuyo3d/issues/78>`_)
+* Update assets to v0.4.1 (`#77 <https://github.com/at-wat/hokuyo3d/issues/77>`_)
+* Update assets to v0.4.0 (`#76 <https://github.com/at-wat/hokuyo3d/issues/76>`_)
+* Update assets to v0.3.4 (`#75 <https://github.com/at-wat/hokuyo3d/issues/75>`_)
+* Update assets to v0.3.3 (`#73 <https://github.com/at-wat/hokuyo3d/issues/73>`_)
+* Update assets to v0.3.2 (`#72 <https://github.com/at-wat/hokuyo3d/issues/72>`_)
+* Update assets to v0.3.1 (`#71 <https://github.com/at-wat/hokuyo3d/issues/71>`_)
+* Update assets to v0.3.0 (`#70 <https://github.com/at-wat/hokuyo3d/issues/70>`_)
+* Update assets to v0.2.0 (`#69 <https://github.com/at-wat/hokuyo3d/issues/69>`_)
+* Update assets to v0.1.5 (`#66 <https://github.com/at-wat/hokuyo3d/issues/66>`_)
+* Update assets to v0.1.4 (`#65 <https://github.com/at-wat/hokuyo3d/issues/65>`_)
+* Update dockerignore (`#64 <https://github.com/at-wat/hokuyo3d/issues/64>`_)
+* Update assets to v0.1.3 (`#63 <https://github.com/at-wat/hokuyo3d/issues/63>`_)
+* Update assets to v0.1.2 (`#62 <https://github.com/at-wat/hokuyo3d/issues/62>`_)
+* Migrate to GitHub Actions (`#60 <https://github.com/at-wat/hokuyo3d/issues/60>`_)
+* Update assets to v0.0.10 (`#59 <https://github.com/at-wat/hokuyo3d/issues/59>`_)
+* Update assets to v0.0.9 (`#57 <https://github.com/at-wat/hokuyo3d/issues/57>`_)
+* Update CI scripts (`#58 <https://github.com/at-wat/hokuyo3d/issues/58>`_)
+* Bump cmake minimum version to 3.0.2 (`#55 <https://github.com/at-wat/hokuyo3d/issues/55>`_)
+* Contributors: Atsushi Watanabe
+
 0.2.1 (2020-04-07)
 ------------------
 * Fix bot comment on prerelease test (`#52 <https://github.com/at-wat/hokuyo3d/issues/52>`_)
