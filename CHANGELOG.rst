@@ -2,8 +2,8 @@
 Changelog for package hokuyo3d
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.2 (2025-07-26)
+------------------
 * Remove old CI files (`#90 <https://github.com/at-wat/hokuyo3d/issues/90>`_)
 * Migrate to Alpine ROS 1 (`#87 <https://github.com/at-wat/hokuyo3d/issues/87>`_)
 * Update assets to v0.6.4 (`#86 <https://github.com/at-wat/hokuyo3d/issues/86>`_)
